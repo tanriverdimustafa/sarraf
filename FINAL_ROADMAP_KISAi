@@ -1,0 +1,360 @@
+# KUYUMCULUK SİSTEMİ - FINAL ROADMAP
+## 📅 Son Revize - Emergent AI İçin Hazır
+
+---
+
+## ⚠️ ÖNEMLİ NOTLAR
+
+1. ✅ **WebSocket üst bar ZATEN ÇALIŞIYOR** (dokunma)
+2. ✅ **Hurda milyem** = Her işlemde editlenebilir input (tedarikçi bazlı değil)
+3. ✅ **Stok girişi transaction YOK** (Sahip kendi cari kartından işlem yapar)
+4. ✅ **İl/İlçe** = Metin input (combo değil)
+5. ❌ **Süre tahmini YOK** (Emergent AI kendi hızında çalışır)
+
+---
+
+## 📋 16 ANA GÖREV
+
+### 🔴 FAZ 1: KRİTİK SORUNLAR (3 Görev)
+
+#### GÖREV 1.1: Combobox Sorunu
+**Sorun:** Hurda, Alış, Döviz, Party Edit formlarında combobox'lar boş
+
+**Çözüm:**
+- Her formda `loadLookups` fonksiyonuna console log ekle
+- API response kontrol et
+- Value type fix: `<SelectItem value={item.id.toString()}>`
+- Test et
+
+**Dosyalar:**
+- `frontend/src/components/transactions/forms/HurdaForm.jsx`
+- `frontend/src/components/transactions/forms/PurchaseForm.jsx`
+- `frontend/src/components/transactions/forms/PaymentForm.jsx`
+- `frontend/src/components/PartyFormDialog.js`
+- `frontend/src/components/transactions/forms/ExchangeForm.jsx`
+
+---
+
+#### GÖREV 1.2: Party Balance API
+**Sorun:** Party detay sayfasında bakiye ve işlemler görünmüyor
+
+**Backend Ekle (server.py):**
+```python
+@api_router.get("/parties/{party_id}/balance")
+@api_router.get("/parties/{party_id}/transactions")
+```
+
+**Frontend Güncelle (PartyDetailPage.js):**
+- 3 API çağrısı: party, balance, transactions
+- UI'da göster: HAS, TL, USD, EUR bakiye + işlem listesi + sayfalama
+
+---
+
+#### GÖREV 1.3: Hurda Altın ile Ödeme
+**Sorun:** Ödeme metodunda "Hurda Altın" var ama detay sorulmuyor
+
+**PaymentForm.jsx Güncelle:**
+- `payment_method_code === 'GOLD_SCRAP'` ise form aç
+- Karat, Ağırlık, Milyem (editlenebilir) input'ları
+- HAS hesaplama göster
+- Birden fazla hurda kalemi eklenebilir
+
+---
+
+### 🟡 FAZ 2: YÜKSEK ÖNCELİKLİ (7 Görev)
+
+#### GÖREV 2.1: Kullanıcı Yönetimi
+**Yeni Sayfa:** `UsersPage.js`
+
+**Backend:**
+- `GET/POST/PUT/DELETE /api/users`
+- Roller: ADMIN, STORE_MANAGER, SALES
+- Soft delete (is_active: false)
+
+**Frontend:**
+- Kullanıcı listesi (tablo)
+- Create/Edit dialog
+- Route guard (yetki kontrolü)
+
+---
+
+#### GÖREV 2.2: Lookup Yönetim Paneli
+**Yeni Sayfa:** `SettingsPage.js`
+
+**8 Tab:**
+1. Party Types
+2. Product Types (+ unit, fixed_weight)
+3. Karats
+4. Labor Types
+5. Stock Statuses
+6. Transaction Types
+7. Payment Methods (+ commission_rate editlenebilir)
+8. Currencies
+
+**Her Lookup İçin:**
+- Backend: GET/POST/PUT/DELETE `/api/lookups/{lookup-name}`
+- Frontend: Manager component (Liste, Ekle, Düzenle, Sil)
+- Admin yetkisi kontrolü
+- İlişki kontrolü (kullanılıyorsa silinemesin)
+
+---
+
+#### GÖREV 2.3: Ürün - Tedarikçi
+**Database Ekle:**
+```javascript
+products: {
+  supplier_party_id: "uuid",
+  purchase_date: "ISO Date"
+}
+```
+
+**ProductFormDialog.js:**
+- Tedarikçi select (sadece party_type_id: 2 veya 3)
+- Alış tarihi input
+
+---
+
+#### GÖREV 2.4: Fotoğraf Upload
+**ProductFormDialog.js:**
+- File input (capture="environment" - kamera)
+- Base64'e çevir
+- Preview grid
+- Database: `images: []` array'ine ekle
+
+**ProductDetailPage.js:**
+- Fotoğraf galeri göster
+
+---
+
+#### GÖREV 2.5: Barkod Basma
+**Kütüphane:** `yarn add jsbarcode`
+
+**ProductDetailPage.js:**
+- Barkod basma butonu
+- Canvas'a barkod çiz
+- Print window aç
+
+---
+
+#### GÖREV 2.6: Parties - TC ve Adres
+**Database Ekle:**
+```javascript
+parties: {
+  tc_number: "11 karakter",     // Müşteri için
+  phone: "10 karakter",
+  city: "Metin",                 // Combo değil!
+  district: "Metin",             // Combo değil!
+  address: "Metin"
+}
+```
+
+**PartyFormDialog.js:**
+- Müşteri ise: TC input
+- Herkes için: Telefon, İl (input), İlçe (input), Adres (textarea)
+- Tedarikçi için: Vergi No, Vergi Dairesi
+
+---
+
+#### GÖREV 2.7: Sarrafiye (Adet Bazlı)
+**product_types Güncelle:**
+```python
+{
+  "code": "GOLD_QUARTER",
+  "unit": "PIECE",        # YENİ
+  "fixed_weight": 1.8     # YENİ
+}
+```
+
+**ProductFormDialog.js:**
+- `unit === 'PIECE'` ise → Adet input + "Sabit ağırlık: X gr/adet"
+- `unit === 'GRAM'` ise → Gram input
+
+---
+
+### 🟢 FAZ 3: TRANSACTION LOGİC (4 Görev)
+
+#### GÖREV 3.1: Altın Alımı - Kar/Zarar
+**Backend (financial_v2_transactions.py):**
+```python
+# Her line için:
+paid_has = müşteriye_ödenen / has_buy_tl
+supplier_sale_has = weight * supplier_fineness
+profit_has = supplier_sale_has - paid_has
+profit_tl = profit_has * has_sell_tl
+```
+
+**PurchaseForm.jsx:**
+- Her line'ın altında kar/zarar card göster
+
+---
+
+#### GÖREV 3.2: Satış - Pazarlık ve Kısmi Ödeme
+**SaleForm.jsx:**
+```javascript
+expected_tl = product.sale_has_value * has_price
+actual_paid_tl = kullanıcı girişi
+debt_tl = expected_tl - actual_paid_tl
+debt_has = debt_tl / has_price
+
+// Party balance güncelle
+```
+
+**UI:**
+- Beklenen tutar (disabled)
+- Müşteri ödeme (input)
+- Kalan borç göster (alert)
+- Kar oranı değişimi göster
+
+---
+
+#### GÖREV 3.3: Tahsilat - İskonto
+**ReceiptForm.jsx:**
+- İskonto checkbox
+- İskonto tutarı (HAS) input
+- Kalan borç hesapla ve göster
+
+---
+
+#### GÖREV 3.4: Döviz - USD/EUR Rate Fix
+**safe_init_all_lookups.py:**
+```python
+snapshot = {
+  "usd_buy_tl": 32.15,
+  "usd_sell_tl": 32.25,
+  "eur_buy_tl": 35.10,
+  "eur_sell_tl": 35.22
+}
+```
+
+**financial_v2_transactions.py:**
+```python
+from_has = from_amount * from_rate / has_sell_tl
+to_has = to_amount * to_rate / has_buy_tl
+profit_has = from_has - to_has
+```
+
+---
+
+### 🟢 FAZ 4: RAPORLAR (1 Görev)
+
+#### GÖREV 4.1: Raporlar Sayfası
+**Yeni Sayfa:** `EnhancedReportsPage.js`
+
+**Backend:**
+```python
+@api_router.get("/reports/comprehensive")
+# Return:
+# - Stok durumu (tip bazında: gram, adet, HAS)
+# - Kasa/Banka/Kredi Kartı bakiye
+# - Kar/Zarar (HAS ve TL)
+
+@api_router.post("/reports/export")
+# Excel export (openpyxl)
+```
+
+**Frontend:**
+- Tarih aralığı seçimi
+- Stok raporu tablo
+- Bakiye kartları
+- Kar/Zarar card
+- Excel export butonu
+
+---
+
+### 🟢 FAZ 5: DİĞER (1 Görev)
+
+#### GÖREV 5.1: updated_by Alanı
+**Tüm Collection'larda:**
+```python
+update_data = {
+  **request_data,
+  "updated_at": datetime.now(timezone.utc),
+  "updated_by": user_id  # Token'dan al
+}
+```
+
+**Eklenmesi Gereken Collection'lar:**
+- parties
+- products
+- financial_transactions
+- Tüm lookup collection'ları
+
+---
+
+## 🎯 EMERGENT AI İÇİN TALİMAT
+
+```
+Emergent, aşağıdaki dosyayı oku:
+- FINAL_ROADMAP_IL_ILCE_YOK.md
+
+ÖNEMLİ:
+✅ WebSocket üst bar çalışıyor (dokunma)
+✅ Hurda milyem = her işlemde editlenebilir
+✅ Stok girişi transaction YOK
+✅ İl/İlçe = metin input (combo değil)
+
+FAZ 1'DEN BAŞLA: Kritik Sorunlar
+
+GÖREV 1.1: Combobox Sorunu
+1. HurdaForm.jsx'e console log ekle
+2. API response kontrol et
+3. Value type fix (.toString())
+4. Test et
+
+Her adımda:
+- Console log göster
+- Test sonucu bildir
+- Git commit
+- Sonraki göreve geç
+
+Başla!
+```
+
+---
+
+## 📊 ÖZET
+
+| Faz | Görev Sayısı |
+|-----|--------------|
+| FAZ 1: Kritik | 3 |
+| FAZ 2: Yüksek Öncelikli | 7 |
+| FAZ 3: Transaction | 4 |
+| FAZ 4: Raporlar | 1 |
+| FAZ 5: Diğer | 1 |
+| **TOPLAM** | **16** |
+
+---
+
+## ✅ BAŞARILI TAMAMLANMA KRİTERLERİ
+
+### FAZ 1 Tamamlandı mı?
+- [ ] Tüm combobox'lar dolu
+- [ ] Party detayında bakiye görünüyor
+- [ ] Hurda altın ile ödeme çalışıyor
+
+### FAZ 2 Tamamlandı mı?
+- [ ] Admin kullanıcı ekleyebiliyor
+- [ ] Settings sayfasında 8 lookup yönetilebiliyor
+- [ ] Ürüne tedarikçi atanabiliyor
+- [ ] Fotoğraf eklenebiliyor
+- [ ] Barkod basılabiliyor
+- [ ] Party'de TC, telefon, adres (il/ilçe metin) girilebiliyor
+- [ ] Sarrafiye ürünleri adet bazlı
+
+### FAZ 3 Tamamlandı mı?
+- [ ] Altın alımında kar/zarar görünüyor
+- [ ] Satışta pazarlık ve kısmi ödeme yapılabiliyor
+- [ ] Tahsilatta iskonto yapılabiliyor
+- [ ] Döviz işleminde kar/zarar (HAS) hesaplanıyor
+
+### FAZ 4 Tamamlandı mı?
+- [ ] Raporlar sayfası var
+- [ ] Stok durumu, kasa/banka, kar/zarar görünüyor
+- [ ] Excel'e aktarılabiliyor
+
+### FAZ 5 Tamamlandı mı?
+- [ ] Tüm collection'larda updated_by var
+
+---
+
+**HAZIR! Emergent AI'a verilebilir.** 🚀

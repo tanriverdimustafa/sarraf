@@ -1,0 +1,82 @@
+# FRONTEND REQUIREMENTS - FINANCIAL V2
+
+## 1. Genel Kurallar
+- Mevcut çalışan yapıyı BOZMA.
+- Backend’e dokunma, sadece frontend tarafında iyileştirme yap.
+- Hiçbir endpoint veya schema değişikliği yapma.
+- Yaptığın her değişikliği kendin local veya preview ortamında TEST ET.
+- Test etmediğin hiçbir akışı “çalışıyor” diye raporlama.
+
+---
+
+## 2. Party / Product Combobox Sorunları
+
+### 2.1 Parties Sayfası
+- “Yeni Party” formunu açtığımda **party type combobox’ı boş geliyor**.
+- Beklenen:
+  - Party type combobox backend’den gelen lookup ile DOLMALI.
+  - Örnek: “Müşteri”, “Tedarikçi”, “Sarrafiye” vb. tipler.
+- Party listesi sayfası da backend’deki kayıtları gösterebilmeli.
+  - Eğer Transaction ekranında party seçilebiliyorsa, Parties sayfası da aynı datayı görmeli.
+
+### 2.2 Products Sayfası
+- “Yeni Product” (ürün) formunda **product type combobox’ı boş geliyor**.
+- Beklenen:
+  - Product type combobox backend’deki product type/lookup datası ile DOLMALI.
+  - Örnek: “GOLD_BRACELET”, “GOLD_RING”, “GOLD_SCRAP” vb.
+- Products listesinde **en az birkaç IN_STOCK örnek ürün** seed olarak eklenmeli (test için).
+
+---
+
+## 3. Transaction Ekranları – Party ve Product Bağlantıları
+
+### 3.1 PURCHASE (Alış) Ekranı
+- “Yeni İşlem → Alış” seçtiğimde:
+  - **Party combobox boş geliyor.**
+  - Beklenen: Parties collection’daki aktif partiler listelenmeli.
+- Product alanı:
+  - Eğer barkod numarası girersem (veya barkod okuyucu ile okursam) **ürün otomatik dolmalı**:
+    - Karat
+    - Ağırlık
+    - Ürün tipi
+  - Products tablosunda test için otomatik insert edilmiş birkaç ürün olmalı ki bu özellik TEST EDİLEBİLSİN.
+
+### 3.2 SALE (Satış) Ekranı
+- Satış ekranında party combobox dolu görünüyorsa, Parties listesi de aynı datayı kullanmalı.
+  - Eğer Parties sayfasında liste boş ama satış ekranında party seçilebiliyorsa, bu tutarsızlık giderilmeli:
+    - **Tek bir data kaynağı**: Parties endpoint.
+- Barkod numarası satışta daha anlamlı:
+  - Barkod girdiğimde ürün bilgileri otomatik dolmalı (purchase’da değil, sale’de daha mantıklı).
+- Ayrıca:
+  - “Benim elimde 50 gr külçe var, barkodsuz, gram satıyorum” senaryosu için:
+    - Sarrafiye satışı gibi, barkodsuz ürün satılabilen bir akış olmalı (örneğin “generic gold” satışı).
+    - Karat seçilebilir olmalı (ör: 24k külçe, 22k bilezik hurda vs.).
+    - Bu durumda product_id opsiyonel olabilir, ama karat + weight + type ile line oluşturulmalı.
+
+---
+
+## 4. Karat ve HAS Fiyatı
+
+### 4.1 Karat Bilgisi
+- Hem Product eklerken hem Transaction ekranlarında **karat combobox’ı** backend’teki `karats` lookup’ı ile dolmalı.
+- Örnek: 24k, 22k, 18k, 14k.
+
+### 4.2 Has Altın Fiyatı Gösterimi
+- Tüm satış ekranlarında (özellikle SALE ve HURDA):
+  - Güncel **Has altın satış fiyatı** ekranda görünmeli.
+  - Bu alan **editable** olmalı:
+    - Çünkü o günkü işlemde kullanılan fiyat, socket’ten gelen fiyattan farklı olabilir.
+  - Kullanıcı bu fiyatı manuel güncelleyebilirse,
+    - Transaction backend’e gönderilirken kullanılan HAS/TL oranı bu değer üzerinden hesaplanmalı (dokümandaki kurallara uygun şekilde).
+
+---
+
+## 5. HURDA Formu Hatası
+
+### 5.1 Hata
+- “İşlemler → Yeni İşlem → Hurda Altın” seçildiğinde aşağıdaki hata alınıyor:
+
+  ```text
+  Select is not defined
+  ReferenceError: Select is not defined
+      at HurdaForm (...)

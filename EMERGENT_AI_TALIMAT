@@ -1,0 +1,301 @@
+# EMERGENT AI - ADIM ADIM TALİMAT REHBERİ
+## 📅 11 Aralık 2024
+
+---
+
+## 🎯 AMAÇ
+
+Kuyumculuk stok yönetim sisteminde tespit edilen 16 sorunu/eksiği gidermek.
+
+---
+
+## 📂 PROJE BİLGİLERİ
+
+**Proje Dizini:** `/home/claude/webproject202512111020-main`
+
+**Yapı:**
+```
+webproject202512111020-main/
+├── backend/           # Python FastAPI
+├── frontend/          # React
+├── .emergent/         # Emergent AI metadata
+└── README.md
+```
+
+**Teknolojiler:**
+- Backend: Python 3.11, FastAPI, MongoDB
+- Frontend: React 19, Vite, shadcn/ui, Tailwind CSS
+
+---
+
+## 📋 GÖREV LİSTESİ (16 Görev - 5 Faz)
+
+### FAZ 1: KRİTİK SORUNLAR (3 Görev)
+1. ✅ Combobox Sorunu Çözümü
+2. ✅ Party Balance API
+3. ✅ Hurda Altın ile Ödeme
+
+### FAZ 2: YÜKSEK ÖNCELİKLİ (7 Görev)
+4. ✅ Kullanıcı Yönetimi
+5. ✅ Lookup Yönetim Paneli (8 tab)
+6. ✅ Ürün - Tedarikçi Bağlantısı
+7. ✅ Fotoğraf Upload
+8. ✅ Barkod Basma
+9. ✅ Parties - TC ve Adres
+10. ✅ Sarrafiye (Adet Bazlı)
+
+### FAZ 3: TRANSACTION LOGİC (4 Görev)
+11. ✅ Altın Alımı - Kar/Zarar
+12. ✅ Satış - Pazarlık ve Kısmi Ödeme
+13. ✅ Tahsilat - İskonto
+14. ✅ Döviz - USD/EUR Rate Fix
+
+### FAZ 4: RAPORLAR (1 Görev)
+15. ✅ Raporlar Sayfası
+
+### FAZ 5: DİĞER (1 Görev)
+16. ✅ updated_by Alanı
+
+---
+
+## 🚀 NASIL BAŞLAYACAKSIN?
+
+### 1. PROJE YAPISINI ANLA
+
+İlk olarak projeyi incele:
+
+```bash
+# Backend yapısını gör
+ls -la backend/
+
+# Frontend yapısını gör
+ls -la frontend/src/
+
+# Mevcut component'leri listele
+find frontend/src/components -name "*.jsx" -o -name "*.js"
+
+# Backend endpoint'leri gör
+cat backend/server.py | grep "@api_router"
+```
+
+### 2. ROADMAP'İ OKU
+
+Ana görev listesi:
+```bash
+cat /home/claude/FINAL_ROADMAP_KISAi.md
+```
+
+Combobox debug bilgisi (ilk görev için):
+```bash
+cat /home/claude/GERCEK_TEST_SORUN_ANALIZI.md
+```
+
+---
+
+## 📝 ÇALIŞMA YÖNTEMİ
+
+### Her Görev İçin:
+
+1. **Dosyaları Oku**
+   - İlgili component'leri/endpoint'leri bul
+   - Mevcut kodu incele
+   - Sorunu tespit et
+
+2. **Değişiklikleri Yap**
+   - Kod yaz/güncelle
+   - Console log ekle (debugging için)
+   - Test et
+
+3. **Git Commit**
+   ```bash
+   git add .
+   git commit -m "Görev X.Y: [Açıklama]"
+   ```
+
+4. **Test Sonucunu Bildir**
+   - Console log'ları göster
+   - Hata varsa belirt
+   - Başarılı ise sonraki göreve geç
+
+---
+
+## 🎯 FAZ 1 - İLK 3 GÖREV (ÖNCELİK)
+
+### GÖREV 1.1: Combobox Sorunu ⚡
+
+**Sorun:** Form combobox'ları boş
+
+**Dosyalar:**
+- `frontend/src/components/transactions/forms/HurdaForm.jsx`
+- `frontend/src/components/transactions/forms/PurchaseForm.jsx`
+- `frontend/src/components/transactions/forms/PaymentForm.jsx`
+- `frontend/src/components/PartyFormDialog.js`
+- `frontend/src/components/transactions/forms/ExchangeForm.jsx`
+
+**Ne Yapacaksın:**
+
+1. Her dosyayı aç
+2. `loadLookups` fonksiyonunu bul
+3. Console log ekle:
+```javascript
+const loadLookups = async () => {
+  console.log('🔍 Loading lookups...');
+  
+  try {
+    const [partiesData, karatsData] = await Promise.all([
+      getParties(),
+      getKarats()
+    ]);
+    
+    console.log('📊 Parties:', partiesData);
+    console.log('📊 Karats:', karatsData);
+    
+    setParties(partiesData || []);
+    setKarats(karatsData || []);
+    
+    console.log('✅ State updated');
+  } catch (error) {
+    console.error('❌ Error:', error);
+  }
+};
+```
+
+4. SelectItem value fix:
+```javascript
+// ÖNCE:
+<SelectItem value={party.id}>
+
+// SONRA:
+<SelectItem value={party.id.toString()}>
+```
+
+5. Test et ve sonucu bildir
+
+---
+
+### GÖREV 1.2: Party Balance API ⚡
+
+**Sorun:** Party detay sayfasında bakiye görünmüyor
+
+**Ne Yapacaksın:**
+
+1. **Backend Endpoint Ekle** (`backend/server.py`):
+```python
+@api_router.get("/parties/{party_id}/balance")
+async def get_party_balance(party_id: str):
+    # HAS, TL, USD, EUR bakiyelerini hesapla
+    # financial_transactions'dan aggregate
+    pass
+
+@api_router.get("/parties/{party_id}/transactions")
+async def get_party_transactions(party_id: str, page: int = 1):
+    # Party'nin işlemlerini getir (sayfalama ile)
+    pass
+```
+
+2. **Frontend Güncelle** (`frontend/src/pages/PartyDetailPage.js`):
+```javascript
+const [balance, setBalance] = useState(null);
+const [transactions, setTransactions] = useState([]);
+
+useEffect(() => {
+  fetchPartyDetails();
+}, [id]);
+
+const fetchPartyDetails = async () => {
+  const [partyRes, balanceRes, txRes] = await Promise.all([
+    api.get(`/api/parties/${id}`),
+    api.get(`/api/parties/${id}/balance`),
+    api.get(`/api/parties/${id}/transactions?page=1`)
+  ]);
+  
+  setParty(partyRes.data);
+  setBalance(balanceRes.data);
+  setTransactions(txRes.data.transactions);
+};
+```
+
+3. Test et ve sonucu bildir
+
+---
+
+### GÖREV 1.3: Hurda Altın ile Ödeme ⚡
+
+**Sorun:** Ödeme metodunda "Hurda Altın" detayı sorulmuyor
+
+**Ne Yapacaksın:**
+
+1. **PaymentForm.jsx Güncelle:**
+```javascript
+const [showScrapSection, setShowScrapSection] = useState(false);
+const [scrapLines, setScrapLines] = useState([]);
+
+const handlePaymentMethodChange = (value) => {
+  if (value === 'GOLD_SCRAP') {
+    setShowScrapSection(true);
+    setScrapLines([{ karat_id: '', weight_gram: '', fineness: '', has_amount: 0 }]);
+    loadKarats();
+  } else {
+    setShowScrapSection(false);
+  }
+};
+
+// UI'da hurda section ekle:
+{showScrapSection && (
+  <Card>
+    <CardHeader>Hurda Altın Detayları</CardHeader>
+    <CardContent>
+      {/* Karat select */}
+      {/* Ağırlık input */}
+      {/* Milyem input (editlenebilir!) */}
+      {/* HAS hesaplama göster */}
+    </CardContent>
+  </Card>
+)}
+```
+
+2. Test et ve sonucu bildir
+
+---
+
+## ⚠️ ÖNEMLİ HATIRLATMALAR
+
+1. **WebSocket Üst Bar'a Dokunma** - Zaten çalışıyor
+2. **Hurda Milyem** - Her işlemde editlenebilir (tedarikçi bazlı değil)
+3. **Stok Girişi Transaction'ı Ekleme** - Gerek yok
+4. **İl/İlçe** - Metin input olacak (combo değil)
+5. **Git Commit** - Her görev sonrası commit at
+
+---
+
+## 📊 İLERLEME TAKİBİ
+
+Her görev tamamlandığında şunu söyle:
+```
+✅ GÖREV X.Y TAMAMLANDI
+
+Değişiklikler:
+- Dosya 1: [Ne değişti]
+- Dosya 2: [Ne değişti]
+
+Test Sonucu:
+- [Başarılı/Başarısız]
+- [Console log çıktısı]
+
+Git Commit: [commit hash]
+
+Sonraki görev: X.(Y+1)
+```
+
+---
+
+## 🚀 HAZIR MISIN?
+
+Şimdi şunu yap:
+
+1. Proje yapısını incele
+2. FINAL_ROADMAP_KISAi.md dosyasını oku
+3. FAZ 1, GÖREV 1.1'den başla
+4. Her adımda ilerlemeyi bildir
+
+**Başla!** 🎯

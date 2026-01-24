@@ -1,0 +1,213 @@
+# TRANSACTION V2 MODÜLÜ - KALICI TASARIM DOKÜMANI
+
+> Bu dosya, projede çalışan **HER AI AGENTİN** (Emergent dahil) Transaction V2 ile ilgili
+> neleri değiştirebileceğini / değiştiremeyeceğini ve mevcut altyapıyı anlatır.
+> Yeni bir oturumda çalışmaya başlamadan önce **bu dosya tamamen okunmalıdır.**
+
+---
+
+## 0. AMAÇ
+
+- Kuyumculuk sistemi için **HAS bazlı** transaction altyapısı.
+- Mevcut basit `transactions` collection'ına **DOKUNMADAN** yeni nesil finans modülü sağlamak.
+- Tüm logic’in **financial_transactions** ve yardımcı collection’lar üzerinden yürütülmesi.
+
+---
+
+## 1. KESİN KURALLAR (DEĞİŞTİRME!)
+
+1. `transactions` collection'ına DOKUNMA  
+   - Şema değiştirme  
+   - Migration yazma  
+   - Index değiştirme  
+   **YASAK**
+
+2. Aşağıdaki modüllere dokunma (sadece read / reuse serbest):
+   - Party modülü ve API’leri
+   - Product modülü ve API’leri
+   - Mevcut backend endpoint'leri
+
+3. Yeni iş, **sadece** şu alanlarda yapılacak:
+   - `financial_transactions` collection
+   - `price_snapshots` collection
+   - Lookup collection’lar:
+     - `transaction_types`
+     - `payment_methods`
+     - `currencies`
+   - Transaction V2 ile ilgili yeni endpoint’ler:
+     - `/api/financial-transactions/*`
+     - `/api/financial-v2/*`
+
+4. Transaction V2 ile ilgili **şema, alan isimleri ve temel mantık yeniden tasarlanmamalı.**
+   - Genişletilebilir, ama **kırıcı değişiklik yapılmamalı**.
+
+---
+
+## 2. MEVCUT DURUM ÖZETİ
+
+### 2.1. Yeni Collection’lar
+
+- `transaction_types`  
+  - Kodlar: `PURCHASE`, `SALE`, `PAYMENT`, `RECEIPT`, `EXCHANGE`, `ADJUSTMENT`, `HURDA`
+- `payment_methods`  
+  - Kodlar: `CASH`, `BANK_TRANSFER`, `CREDIT_CARD`, `FX_CASH`, `CHECK`, `GOLD_SCRAP`
+- `currencies`  
+  - Kodlar: `TRY`, `USD`, `EUR`
+- `price_snapshots`
+  - Harem socket’ten gelen altın ve döviz fiyatları
+  - Snapshot mantığı: `as_of`, `has_buy_tl`, `has_sell_tl`, opsiyonel `usd_*`, `eur_*`
+- `financial_transactions`
+  - Transaction V2’nin ana collection’ı
+  - `lines[]` embedded yapıda
+- `audit_logs`
+  - Tüm değişiklikler için audit trail
+
+### 2.2. Transaction Şeması (financial_transactions)
+
+Temel alanlar:
+
+- `code`: `TRX-YYYYMMDD-XXXX`
+- `type_code`: `"PURCHASE" | "SALE" | "PAYMENT" | "RECEIPT" | "EXCHANGE" | "ADJUSTMENT" | "HURDA"`
+- `party_id`: Party id (string)
+- `transaction_date`: ISODate
+- `status`: `"COMPLETED" | "PENDING" | "CANCELLED" | "RECONCILED"`
+- `total_has_amount`: Number (6 decimal, **+ IN / - OUT**)
+- `currency`: `"TRY" | "USD | "EUR" | null`
+- `total_amount_currency`: Number (2 decimal)
+- `price_snapshot_id`: `price_snapshots._id`
+- `payment_method_code`: `"CASH" | "BANK_TRANSFER" | "CREDIT_CARD" | ...`
+- `commission_amount_currency`, `commission_has_amount`
+- `lines[]`: satır bazlı yapı
+- `reconciled`, `reconciled_with[]`, `reconciled_at`, `reconciled_by`
+- `version`, `idempotency_key`
+
+`lines[]` içinde:
+
+- `line_kind`: `"INVENTORY" | "PAYMENT" | "FX" | "ADJUSTMENT" | "FEE"`
+- `product_id`, `sku`, `product_type_code`
+- `karat_id`, `fineness`, `weight_gram`
+- `labor_type_code`: `"PER_GRAM" | "PER_PIECE"`
+- `labor_has_value`
+- `material_has`, `labor_has`, `line_total_has`
+- `quantity`, `unit_price_currency`, `line_amount_currency`
+- `referenced_tx_id`, `referenced_line_id`
+- `note`, `meta`
+
+---
+
+## 3. İŞ MANTIĞI DURUMU
+
+### 3.1. Tam / Kısmen İmplement Edilmiş Transaction Tipleri
+
+Bu projede aşağıdaki transaction tipleri için iş mantığı geliştirilmiştir
+(istisna: bazıları sadece pseudocode seviyesinde olabilir, gerçek durumu kod belirler):
+
+1. `PURCHASE` (Alış)
+2. `SALE` (Satış)
+3. `PAYMENT` (Ödeme)
+4. `RECEIPT` (Tahsilat)
+5. `EXCHANGE` (Döviz alım-satım)
+6. `HURDA` (Hurda altın ile ödeme)
+
+Ana davranışlar:
+
+- `PURCHASE`
+  - Ürün alımı (product oluşturma veya mevcut product’ı IN_STOCK yapma)
+  - Material + labor HAS hesaplama
+  - Komisyon (payment_methods.commission_rate üzerinden) line ekleme
+- `SALE`
+  - Product SOLD yapma
+  - Product üzerindeki cost + sale HAS değerlerinden kar hesaplama
+  - Komisyonu FEE line olarak ekleme
+- `PAYMENT`
+  - Para → HAS çevirme (`convert_currency_to_has`)
+  - Party balance OUT (HAS negatif)
+- `RECEIPT`
+  - PAYMENT’in tersi: para → HAS, HAS pozitif
+- `EXCHANGE`
+  - `from_currency` & `to_currency` için HAS karşılıkları
+  - Net HAS (spread vb.)
+- `HURDA`
+  - `weight_gram * fineness` ile toplam HAS
+  - TL karşılığı reference olarak `meta.equivalent_tl`’de
+
+> Gerçek kodun durumu için:  
+> `financial_v2_helpers.py`, `financial_v2_transactions.py`, `server.py` dosyalarını oku.
+
+---
+
+## 4. YARDIMCI FONKSİYONLAR (financial_v2_helpers.py)
+
+Aşağıdaki fonksiyonlar **var kabul edilmeli**, yoksa önce bunlar eklenmelidir:
+
+- `get_or_create_price_snapshot(transaction_date)`
+- `round_has(value)`
+- `round_currency(value)`
+- `calculate_material_has(line_data, product_type, karat)`
+- `calculate_labor_has(line_data, is_gold_based)`
+- `convert_currency_to_has(amount_currency, currency, snapshot, direction)`
+- `convert_has_to_currency(has_amount, currency, snapshot, direction)`
+- `generate_transaction_code(transaction_date)`
+- `write_audit_log(entity, entity_id, action, changed_by, diff, request)`
+
+Bu fonksiyonların imzası ve temel davranışı **değiştirilmemeli**, gerekiyorsa **genişletilmeli**.
+
+---
+
+## 5. AGGREGATION VE PARTY BALANCE
+
+- Party balance, **runtime aggregation** ile hesaplanır.
+- Ayrı balance tablosu yoktur, oluşturulması da şu an istenmemektedir.
+- Örnek endpoint:
+  - `GET /api/financial-v2/parties/{party_id}/balance`
+- Çıktı:
+  - Toplam HAS
+  - Currency bazında breakdown
+  - Transaction count
+  - Son işlem tarihi
+
+---
+
+## 6. EMERGENT / AI AGENT İÇİN ÇALIŞMA TALİMATI
+
+**Bu dosyayı okuyan her AI için net kurallar:**
+
+1. **Şemayı yeniden tasarlama.**  
+   `financial_transactions`, `price_snapshots` ve lookup collection’ların mevcut tasarımı
+   korunmalı, sadece **uyumlu genişletme** yapılmalıdır.
+
+2. **Mevcut modülleri bozma.**  
+   - `transactions` (legacy)
+   - Party
+   - Product
+   modülleri ve endpoint’leri değiştirilmemelidir.
+
+3. **Çalışma şekli:**
+   - Önce bu dosyayı baştan sona oku.
+   - Sonra kullanıcıdan gelen “CURRENT TASK” bölümüne göre sadece O işi yap.
+   - Her büyük değişiklikten sonra:
+     - Kısa bir özet üret.
+     - Gerekirse bu dökümanda bahsedilen kurallara aykırı bir durum varsa belirt.
+
+4. **Context limitine yaklaşınca:**
+   - O an yaptığın işi kısa maddeler halinde özetle.
+   - Kullanıcıya, bu özeti projedeki dokümana eklemesini veya yeni bir `PROGRESS_*.md` dosyasına
+     koymasını tavsiye et (kullanıcı manuel yapacak).
+
+---
+
+## 7. GELECEK İŞLER (TODO / WISHLIST)
+
+Bu bölüm, ileride AI’ye verilebilecek görevler içindir.  
+Kod tabanında mevcut duruma göre kullanıcı tarafından güncellenecektir.
+
+- [ ] Tüm transaction tipleri için unit test’ler
+- [ ] Aggregation endpoint’leri (P&L, Inventory Valuation, Daily P&L)
+- [ ] Transaction edit/cancel & reconciliation
+- [ ] Frontend UI:
+  - Transaction list + filters
+  - Create / edit for each type
+  - Party balance & P&L dashboard
+
+> NOT: Bu dosya **gerçeğin kaynağı (single source of truth)** değildir ama  
+> AI için “yol haritası + koruma kalkanı” gibi düşünülmelidir. Gerçek durum daima kodda ve DB şemasındadır.

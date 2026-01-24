@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+venv/
+*.log
+
+# Node
+node_modules/
+.env.local
+
+# Build
+frontend/build/
+
+# IDE
+.idea/
+.vscode/
+
+# Uploads
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# SSL
+qz-*.pem

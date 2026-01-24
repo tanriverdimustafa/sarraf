@@ -1,0 +1,275 @@
+{
+  "summary": {
+    "total_tests": 44,
+    "passed_tests": 43,
+    "failed_tests": 1,
+    "success_rate": 97.72727272727273
+  },
+  "detailed_results": [
+    {
+      "test": "User Login",
+      "success": true,
+      "details": "Status: 200",
+      "timestamp": "2025-12-17T20:10:07.223190"
+    },
+    {
+      "test": "TEST 1.1 - GET /api/parties",
+      "success": true,
+      "details": "Status: 200",
+      "timestamp": "2025-12-17T20:10:07.266686"
+    },
+    {
+      "test": "Party listesi d\u00f6n\u00fcyor",
+      "success": true,
+      "details": "7 party bulundu",
+      "timestamp": "2025-12-17T20:10:07.267187"
+    },
+    {
+      "test": "Party'lerde has_balance/balance kontrol\u00fc",
+      "success": true,
+      "details": "T\u00fcm party'lerde balance bilgisi mevcut",
+      "timestamp": "2025-12-17T20:10:07.267212"
+    },
+    {
+      "test": "TEST 2.1 - GET /api/parties/31649801-ea61-4c1c-a04f-2837d5e24c7d",
+      "success": true,
+      "details": "Status: 200",
+      "timestamp": "2025-12-17T20:10:07.310040"
+    },
+    {
+      "test": "Sinan has_balance == balance.has_gold_balance",
+      "success": true,
+      "details": "has_balance: 53.803, has_gold_balance: 53.803",
+      "timestamp": "2025-12-17T20:10:07.310534"
+    },
+    {
+      "test": "Sinan bakiye de\u011feri kontrol\u00fc",
+      "success": false,
+      "details": "Beklenen: ~43.803, Ger\u00e7ek: 53.803",
+      "timestamp": "2025-12-17T20:10:07.310554"
+    },
+    {
+      "test": "TEST 3.1 - GET /api/parties/1d9db983-c66a-4a10-a6fc-8fa368c9848d",
+      "success": true,
+      "details": "Status: 200",
+      "timestamp": "2025-12-17T20:10:07.347012"
+    },
+    {
+      "test": "M\u00fc\u015fteri bakiye de\u011ferleri",
+      "success": true,
+      "details": "HAS: -7.08091, USD: 0.0, EUR: 0.0",
+      "timestamp": "2025-12-17T20:10:07.347493"
+    },
+    {
+      "test": "TEST 4.1 - POST /api/financial-transactions (PURCHASE)",
+      "success": true,
+      "details": "Status: 201",
+      "timestamp": "2025-12-17T20:10:07.425706"
+    },
+    {
+      "test": "PURCHASE i\u015flemi olu\u015ftu",
+      "success": true,
+      "details": "Code: TRX-20251217-4C08",
+      "timestamp": "2025-12-17T20:10:07.426315"
+    },
+    {
+      "test": "TEST 4.2 - GET /api/parties/7150e978-c8e1-41c9-87df-e4eeccfe9df4 (bakiye kontrol\u00fc)",
+      "success": true,
+      "details": "Status: 200",
+      "timestamp": "2025-12-17T20:10:07.461086"
+    },
+    {
+      "test": "Tedarik\u00e7i bakiyesi g\u00fcncellendi",
+      "success": true,
+      "details": "Yeni bakiye: 306.5",
+      "timestamp": "2025-12-17T20:10:07.461548"
+    },
+    {
+      "test": "TEST 5.1 - GET /api/products?stock_status_id=1",
+      "success": true,
+      "details": "Status: 200",
+      "timestamp": "2025-12-17T20:10:07.497550"
+    },
+    {
+      "test": "Stokta \u00fcr\u00fcn bulundu",
+      "success": true,
+      "details": "Product ID: c652f8f6-c029-4d4a-8a08-8509ccfa54eb",
+      "timestamp": "2025-12-17T20:10:07.498060"
+    },
+    {
+      "test": "TEST 5.2 - POST /api/financial-transactions (SALE)",
+      "success": true,
+      "details": "Status: 201",
+      "timestamp": "2025-12-17T20:10:07.534498"
+    },
+    {
+      "test": "SALE i\u015flemi olu\u015ftu",
+      "success": true,
+      "details": "Code: TRX-20251217-20FA",
+      "timestamp": "2025-12-17T20:10:07.534946"
+    },
+    {
+      "test": "TEST 5.3 - GET /api/products/c652f8f6-c029-4d4a-8a08-8509ccfa54eb (stok kontrol\u00fc)",
+      "success": true,
+      "details": "Status: 200",
+      "timestamp": "2025-12-17T20:10:07.567028"
+    },
+    {
+      "test": "\u00dcr\u00fcn SOLD durumuna ge\u00e7ti",
+      "success": true,
+      "details": "Stock status: 2",
+      "timestamp": "2025-12-17T20:10:07.567463"
+    },
+    {
+      "test": "TEST 6.1 - POST /api/financial-transactions (PAYMENT)",
+      "success": true,
+      "details": "Status: 201",
+      "timestamp": "2025-12-17T20:10:07.604046"
+    },
+    {
+      "test": "PAYMENT i\u015flemi olu\u015ftu",
+      "success": true,
+      "details": "Code: TRX-20251217-B635",
+      "timestamp": "2025-12-17T20:10:07.604568"
+    },
+    {
+      "test": "TEST 6.2 - GET /api/parties/31649801-ea61-4c1c-a04f-2837d5e24c7d (bakiye kontrol\u00fc)",
+      "success": true,
+      "details": "Status: 200",
+      "timestamp": "2025-12-17T20:10:07.642460"
+    },
+    {
+      "test": "Sinan bakiyesi azald\u0131",
+      "success": true,
+      "details": "Yeni bakiye: 12.08502 (beklenen: ~38.803)",
+      "timestamp": "2025-12-17T20:10:07.642887"
+    },
+    {
+      "test": "TEST 7.1 - GET /api/financial-transactions",
+      "success": true,
+      "details": "Status: 200",
+      "timestamp": "2025-12-17T20:10:07.678492"
+    },
+    {
+      "test": "TEST 7.2 - POST /api/financial-transactions/TRX-20251217-B635/cancel",
+      "success": true,
+      "details": "Status: 200",
+      "timestamp": "2025-12-17T20:10:07.755051"
+    },
+    {
+      "test": "Transaction cancel 200 OK",
+      "success": true,
+      "details": "\u0130ptal ba\u015far\u0131l\u0131",
+      "timestamp": "2025-12-17T20:10:07.755596"
+    },
+    {
+      "test": "TEST 7.3 - GET /api/financial-transactions/TRX-20251217-B635",
+      "success": true,
+      "details": "Status: 200",
+      "timestamp": "2025-12-17T20:10:07.790045"
+    },
+    {
+      "test": "Status CANCELLED oldu",
+      "success": true,
+      "details": "Status: CANCELLED",
+      "timestamp": "2025-12-17T20:10:07.790637"
+    },
+    {
+      "test": "TEST 8.1 - POST /api/products",
+      "success": true,
+      "details": "Status: 201",
+      "timestamp": "2025-12-17T20:10:07.832845"
+    },
+    {
+      "test": "\u00dcr\u00fcn olu\u015ftu",
+      "success": true,
+      "details": "Product ID: 6d17928e-527d-4aa5-ae7e-5e6ac8da1481",
+      "timestamp": "2025-12-17T20:10:07.833387"
+    },
+    {
+      "test": "TEST 8.2 - GET /api/parties/31649801-ea61-4c1c-a04f-2837d5e24c7d (bakiye kontrol\u00fc)",
+      "success": true,
+      "details": "Status: 200",
+      "timestamp": "2025-12-17T20:10:07.908695"
+    },
+    {
+      "test": "Sinan bakiyesi \u00fcr\u00fcn ekleme sonras\u0131 artt\u0131",
+      "success": true,
+      "details": "Final bakiye: 58.803",
+      "timestamp": "2025-12-17T20:10:07.909317"
+    },
+    {
+      "test": "TEST 9.1 - GET /api/unified-ledger",
+      "success": true,
+      "details": "Status: 200",
+      "timestamp": "2025-12-17T20:10:07.946617"
+    },
+    {
+      "test": "Unified Ledger kay\u0131tlar\u0131 d\u00f6n\u00fcyor",
+      "success": true,
+      "details": "Ledger API \u00e7al\u0131\u015f\u0131yor",
+      "timestamp": "2025-12-17T20:10:07.947476"
+    },
+    {
+      "test": "ADJUSTMENT tipleri mevcut",
+      "success": true,
+      "details": "ADJUSTMENT kay\u0131tlar\u0131 bulundu",
+      "timestamp": "2025-12-17T20:10:07.947591"
+    },
+    {
+      "test": "VOID tipleri mevcut",
+      "success": true,
+      "details": "VOID kay\u0131tlar\u0131 bulundu",
+      "timestamp": "2025-12-17T20:10:07.947600"
+    },
+    {
+      "test": "TEST 10.1 - GET /api/market-data",
+      "success": true,
+      "details": "Status: 200",
+      "timestamp": "2025-12-17T20:10:07.981659"
+    },
+    {
+      "test": "TEST 10.2 - GET /api/cash-registers",
+      "success": true,
+      "details": "Status: 200",
+      "timestamp": "2025-12-17T20:10:08.026474"
+    },
+    {
+      "test": "TEST 10.3 - GET /api/unified-ledger/summary",
+      "success": true,
+      "details": "Status: 200",
+      "timestamp": "2025-12-17T20:10:08.062617"
+    },
+    {
+      "test": "Dashboard verileri",
+      "success": true,
+      "details": "T\u00fcm dashboard API'leri \u00e7al\u0131\u015f\u0131yor",
+      "timestamp": "2025-12-17T20:10:08.063164"
+    },
+    {
+      "test": "TEST 11.1 - GET /api/expenses",
+      "success": true,
+      "details": "Status: 200",
+      "timestamp": "2025-12-17T20:10:08.144134"
+    },
+    {
+      "test": "TEST 11.2 - GET /api/expense-categories",
+      "success": true,
+      "details": "Status: 200",
+      "timestamp": "2025-12-17T20:10:08.179590"
+    },
+    {
+      "test": "Gider API'leri",
+      "success": true,
+      "details": "Gider ve kategori API'leri \u00e7al\u0131\u015f\u0131yor",
+      "timestamp": "2025-12-17T20:10:08.180208"
+    },
+    {
+      "test": "T\u00dcM ENDPOINT'LER 200 OK",
+      "success": true,
+      "details": "T\u00fcm endpoint'ler ba\u015far\u0131l\u0131",
+      "timestamp": "2025-12-17T20:10:08.180231"
+    }
+  ],
+  "timestamp": "2025-12-17T20:10:08.180479"
+}

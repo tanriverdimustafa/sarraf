@@ -1,0 +1,311 @@
+{
+  "summary": {
+    "total_tests": 50,
+    "passed_tests": 50,
+    "failed_tests": 0,
+    "success_rate": 100.0
+  },
+  "detailed_results": [
+    {
+      "test": "User Login",
+      "success": true,
+      "details": "Status: 200",
+      "timestamp": "2025-12-26T20:40:53.152692"
+    },
+    {
+      "test": "Get Existing Parties",
+      "success": true,
+      "details": "Status: 200",
+      "timestamp": "2025-12-26T20:40:53.195722"
+    },
+    {
+      "test": "Create Test Party",
+      "success": true,
+      "details": "Status: 201",
+      "timestamp": "2025-12-26T20:40:53.235519"
+    },
+    {
+      "test": "Created Test Party",
+      "success": true,
+      "details": "Party ID: c0b108d4-5224-4898-818f-ee3cafca9e17",
+      "timestamp": "2025-12-26T20:40:53.236155"
+    },
+    {
+      "test": "PURCHASE without idempotency_key",
+      "success": true,
+      "details": "Status: 201",
+      "timestamp": "2025-12-26T20:40:53.279872"
+    },
+    {
+      "test": "Transaction Code Format",
+      "success": true,
+      "details": "Code: TRX-20251226-3B47",
+      "timestamp": "2025-12-26T20:40:53.280499"
+    },
+    {
+      "test": "No E11000 Error",
+      "success": true,
+      "details": "Transaction created successfully without duplicate key error",
+      "timestamp": "2025-12-26T20:40:53.280516"
+    },
+    {
+      "test": "Get Existing Parties",
+      "success": true,
+      "details": "Status: 200",
+      "timestamp": "2025-12-26T20:40:53.319654"
+    },
+    {
+      "test": "Create Test Party",
+      "success": true,
+      "details": "Status: 201",
+      "timestamp": "2025-12-26T20:40:53.358175"
+    },
+    {
+      "test": "Created Test Party",
+      "success": true,
+      "details": "Party ID: 177e55fb-c4fa-4fe2-b615-a0ced407ed75",
+      "timestamp": "2025-12-26T20:40:53.358760"
+    },
+    {
+      "test": "PURCHASE with idempotency_key",
+      "success": true,
+      "details": "Status: 201",
+      "timestamp": "2025-12-26T20:40:53.436085"
+    },
+    {
+      "test": "Transaction Code Format",
+      "success": true,
+      "details": "Code: TRX-20251226-F59B",
+      "timestamp": "2025-12-26T20:40:53.436702"
+    },
+    {
+      "test": "Get Existing Parties",
+      "success": true,
+      "details": "Status: 200",
+      "timestamp": "2025-12-26T20:40:53.476007"
+    },
+    {
+      "test": "Create Test Party",
+      "success": true,
+      "details": "Status: 201",
+      "timestamp": "2025-12-26T20:40:53.514951"
+    },
+    {
+      "test": "Created Test Party",
+      "success": true,
+      "details": "Party ID: 0675025a-fe0b-44af-8501-eb10f7d1e127",
+      "timestamp": "2025-12-26T20:40:53.515457"
+    },
+    {
+      "test": "PURCHASE with duplicate idempotency_key",
+      "success": true,
+      "details": "Status: 201",
+      "timestamp": "2025-12-26T20:40:53.546434"
+    },
+    {
+      "test": "Idempotency Key Working",
+      "success": true,
+      "details": "Returned existing transaction: TRX-20251226-F59B",
+      "timestamp": "2025-12-26T20:40:53.547161"
+    },
+    {
+      "test": "Get Existing Parties",
+      "success": true,
+      "details": "Status: 200",
+      "timestamp": "2025-12-26T20:40:53.585725"
+    },
+    {
+      "test": "Create Test Party",
+      "success": true,
+      "details": "Status: 201",
+      "timestamp": "2025-12-26T20:40:53.622702"
+    },
+    {
+      "test": "Created Test Party",
+      "success": true,
+      "details": "Party ID: 55af725e-0087-4a2f-bbaa-feb5a2eef6ff",
+      "timestamp": "2025-12-26T20:40:53.623356"
+    },
+    {
+      "test": "PURCHASE #1 without idempotency_key",
+      "success": true,
+      "details": "Status: 201",
+      "timestamp": "2025-12-26T20:40:53.659131"
+    },
+    {
+      "test": "Transaction #1 Created",
+      "success": true,
+      "details": "Code: TRX-20251226-9761",
+      "timestamp": "2025-12-26T20:40:53.659608"
+    },
+    {
+      "test": "PURCHASE #2 without idempotency_key",
+      "success": true,
+      "details": "Status: 201",
+      "timestamp": "2025-12-26T20:40:53.697636"
+    },
+    {
+      "test": "Transaction #2 Created",
+      "success": true,
+      "details": "Code: TRX-20251226-496D",
+      "timestamp": "2025-12-26T20:40:53.698275"
+    },
+    {
+      "test": "PURCHASE #3 without idempotency_key",
+      "success": true,
+      "details": "Status: 201",
+      "timestamp": "2025-12-26T20:40:53.743968"
+    },
+    {
+      "test": "Transaction #3 Created",
+      "success": true,
+      "details": "Code: TRX-20251226-AED4",
+      "timestamp": "2025-12-26T20:40:53.744640"
+    },
+    {
+      "test": "Multiple PURCHASE without idempotency_key",
+      "success": true,
+      "details": "Created 3/3 transactions successfully",
+      "timestamp": "2025-12-26T20:40:53.744656"
+    },
+    {
+      "test": "Get Existing Parties",
+      "success": true,
+      "details": "Status: 200",
+      "timestamp": "2025-12-26T20:40:53.787227"
+    },
+    {
+      "test": "Create Test Party",
+      "success": true,
+      "details": "Status: 201",
+      "timestamp": "2025-12-26T20:40:53.817836"
+    },
+    {
+      "test": "Created Test Party",
+      "success": true,
+      "details": "Party ID: b55c0267-d16d-4a22-809a-0ebf4b549789",
+      "timestamp": "2025-12-26T20:40:53.818417"
+    },
+    {
+      "test": "Create Product for SALE",
+      "success": true,
+      "details": "Status: 201",
+      "timestamp": "2025-12-26T20:40:53.852764"
+    },
+    {
+      "test": "SALE without idempotency_key",
+      "success": true,
+      "details": "Status: 201",
+      "timestamp": "2025-12-26T20:40:53.887608"
+    },
+    {
+      "test": "SALE Transaction Code Format",
+      "success": true,
+      "details": "Code: TRX-20251226-D9A6",
+      "timestamp": "2025-12-26T20:40:53.888077"
+    },
+    {
+      "test": "SALE No E11000 Error",
+      "success": true,
+      "details": "SALE transaction created successfully",
+      "timestamp": "2025-12-26T20:40:53.888093"
+    },
+    {
+      "test": "Get Existing Parties",
+      "success": true,
+      "details": "Status: 200",
+      "timestamp": "2025-12-26T20:40:53.926072"
+    },
+    {
+      "test": "Create Test Party",
+      "success": true,
+      "details": "Status: 201",
+      "timestamp": "2025-12-26T20:40:53.960542"
+    },
+    {
+      "test": "Created Test Party",
+      "success": true,
+      "details": "Party ID: 5f1a7242-fdce-478a-a5b7-c6655759be94",
+      "timestamp": "2025-12-26T20:40:53.961156"
+    },
+    {
+      "test": "PAYMENT without idempotency_key",
+      "success": true,
+      "details": "Status: 201",
+      "timestamp": "2025-12-26T20:40:53.993315"
+    },
+    {
+      "test": "PAYMENT Transaction Code Format",
+      "success": true,
+      "details": "Code: TRX-20251226-C528",
+      "timestamp": "2025-12-26T20:40:53.993958"
+    },
+    {
+      "test": "PAYMENT No E11000 Error",
+      "success": true,
+      "details": "PAYMENT transaction created successfully",
+      "timestamp": "2025-12-26T20:40:53.993985"
+    },
+    {
+      "test": "Get Existing Parties",
+      "success": true,
+      "details": "Status: 200",
+      "timestamp": "2025-12-26T20:40:54.030256"
+    },
+    {
+      "test": "Create Test Party",
+      "success": true,
+      "details": "Status: 201",
+      "timestamp": "2025-12-26T20:40:54.105967"
+    },
+    {
+      "test": "Created Test Party",
+      "success": true,
+      "details": "Party ID: 627f0628-5767-4bb8-a442-ab67aa8cf692",
+      "timestamp": "2025-12-26T20:40:54.106612"
+    },
+    {
+      "test": "RECEIPT without idempotency_key",
+      "success": true,
+      "details": "Status: 201",
+      "timestamp": "2025-12-26T20:40:54.140981"
+    },
+    {
+      "test": "RECEIPT Transaction Code Format",
+      "success": true,
+      "details": "Code: TRX-20251226-3277",
+      "timestamp": "2025-12-26T20:40:54.141562"
+    },
+    {
+      "test": "RECEIPT No E11000 Error",
+      "success": true,
+      "details": "RECEIPT transaction created successfully",
+      "timestamp": "2025-12-26T20:40:54.141577"
+    },
+    {
+      "test": "EXCHANGE without idempotency_key",
+      "success": true,
+      "details": "Status: 201",
+      "timestamp": "2025-12-26T20:40:54.175363"
+    },
+    {
+      "test": "EXCHANGE Transaction Code Format",
+      "success": true,
+      "details": "Code: TRX-20251226-E366",
+      "timestamp": "2025-12-26T20:40:54.176033"
+    },
+    {
+      "test": "EXCHANGE No E11000 Error",
+      "success": true,
+      "details": "EXCHANGE transaction created successfully",
+      "timestamp": "2025-12-26T20:40:54.176050"
+    },
+    {
+      "test": "Idempotency Key Tests Summary",
+      "success": true,
+      "details": "Passed: 8/8 test scenarios",
+      "timestamp": "2025-12-26T20:40:54.176060"
+    }
+  ],
+  "timestamp": "2025-12-26T20:40:54.176190"
+}

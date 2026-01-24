@@ -1,0 +1,145 @@
+{
+  "identity": {
+    "name": "E1",
+    "persona": "The Anti-AI Designer",
+    "mission": "Create a digital ledger that feels like a high-end terminal for precious metals, not a spreadsheet.",
+    "principles": [
+      "Fusion over Imitation: Mix Fintech precision with Jewelry elegance.",
+      "Emotion First: Trust, Value, and Permanence.",
+      "Content is King: Data is the art. Numbers must be beautiful.",
+      "Contrast: Gold on Black. High legibility."
+    ]
+  },
+  "project": {
+    "name": "Emergent AI – Kuyumcu / Sarraf / Döviz Web Uygulaması",
+    "core_rule": "HAS ALTIN (Pure Gold) is the only accounting currency. All values convert to this.",
+    "theme_strategy": "Luxury Dark Mode (Default) with Light Mode option.",
+    "archetype": "Jewel & Luxury (Archetype 5) + Swiss High-Contrast (Archetype 4)"
+  },
+  "typography": {
+    "fonts": {
+      "heading": "Playfair Display, serif",
+      "body": "Manrope, sans-serif",
+      "mono": "JetBrains Mono, monospace"
+    },
+    "usage": {
+      "h1": "text-4xl md:text-5xl font-serif font-medium tracking-tight text-primary",
+      "h2": "text-3xl font-serif tracking-tight text-foreground",
+      "h3": "text-xl font-sans font-semibold tracking-normal text-foreground",
+      "body": "text-base font-sans text-muted-foreground leading-relaxed",
+      "numbers": "font-mono tracking-tight tabular-nums"
+    },
+    "imports": [
+      "@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Manrope:wght@200..800&family=JetBrains+Mono:wght@100..800&display=swap');"
+    ]
+  },
+  "colors": {
+    "palette": {
+      "primary": "#D4AF37",
+      "primary_foreground": "#000000",
+      "background": "#020617",
+      "foreground": "#F8FAFC",
+      "card": "#0F172A",
+      "card_foreground": "#F8FAFC",
+      "popover": "#0F172A",
+      "popover_foreground": "#F8FAFC",
+      "secondary": "#1E293B",
+      "secondary_foreground": "#F8FAFC",
+      "muted": "#1E293B",
+      "muted_foreground": "#94A3B8",
+      "accent": "#D4AF37",
+      "accent_foreground": "#000000",
+      "destructive": "#EF4444",
+      "destructive_foreground": "#FFFFFF",
+      "border": "#1E293B",
+      "input": "#1E293B",
+      "ring": "#D4AF37"
+    },
+    "chart_colors": {
+      "buy": "#10B981",
+      "sell": "#EF4444",
+      "gold": "#D4AF37",
+      "neutral": "#64748B"
+    },
+    "gradients": {
+      "gold_sheen": "linear-gradient(135deg, #D4AF37 0%, #FCD34D 50%, #D4AF37 100%)",
+      "dark_void": "linear-gradient(to bottom, #020617, #0F172A)"
+    }
+  },
+  "layout_strategy": {
+    "dashboard": {
+      "type": "Control Room Grid (Mode B)",
+      "grid": "grid-cols-1 md:grid-cols-4 gap-4",
+      "spacing": "p-4 md:p-6",
+      "rules": [
+        "Dense data display.",
+        "No jagged bottoms.",
+        "Use 'Tracing Beam' borders for active market rates."
+      ]
+    },
+    "marketing_login": {
+      "type": "Split Screen",
+      "left": "Image with overlay",
+      "right": "Form centered",
+      "rules": [
+        "High impact visuals.",
+        "Serif typography for welcome messages."
+      ]
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_15px_rgba(212,175,55,0.3)] transition-all duration-300 font-sans font-semibold rounded-md px-6 py-2",
+      "secondary": "bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border font-sans rounded-md px-6 py-2",
+      "ghost": "hover:bg-accent/10 hover:text-accent font-sans rounded-md px-4 py-2"
+    },
+    "cards": {
+      "base": "bg-card border border-border/50 shadow-xl rounded-lg overflow-hidden",
+      "interactive": "hover:border-primary/50 transition-colors duration-300 cursor-pointer group"
+    },
+    "inputs": {
+      "style": "bg-background border-input focus:border-primary focus:ring-1 focus:ring-primary/50 rounded-md font-sans transition-all"
+    },
+    "tables": {
+      "style": "w-full caption-bottom text-sm",
+      "header": "border-b border-border bg-muted/50 text-muted-foreground font-medium",
+      "row": "border-b border-border hover:bg-muted/50 transition-colors",
+      "cell": "p-4 align-middle [&:has([role=checkbox])]:pr-0 font-mono"
+    }
+  },
+  "visual_enhancers": {
+    "textures": {
+      "noise": "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E\")"
+    },
+    "effects": {
+      "glass": "backdrop-blur-xl bg-background/70 border border-white/10",
+      "glow": "shadow-[0_0_20px_rgba(212,175,55,0.15)]"
+    }
+  },
+  "assets": {
+    "images": {
+      "login_bg": "https://images.unsplash.com/photo-1764795849755-ab58c8fef307?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "gold_texture": "https://images.unsplash.com/photo-1643324897407-54f8ae049132?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "coins_pile": "https://images.unsplash.com/photo-1624365169106-1f1f4cd65c91?crop=entropy&cs=srgb&fm=jpg&q=85"
+    },
+    "icons": "lucide-react"
+  },
+  "tech_stack_rules": {
+    "framework": "React (JS)",
+    "styling": "Tailwind CSS",
+    "components": "Shadcn UI (Customized)",
+    "file_extension": ".js",
+    "state_management": "React Context + Hooks",
+    "data_fetching": "Axios + WebSocket"
+  },
+  "universal_guidelines": [
+    "Do not use gradients for dark colors.",
+    "Avoid generic centered layouts.",
+    "Use z-index hierarchy for depth.",
+    "No 'transition: all'. Animate specific properties.",
+    "Micro-animations on all interactions.",
+    "Data-testid on all interactive elements.",
+    "HAS ALTIN is the source of truth."
+  ],
+  "instructions_to_main_agent": "1. Update tailwind.config.js with the new color palette. 2. Install necessary fonts. 3. Create the layout structure (Sidebar + Header + Main Content). 4. Implement the WebSocket connection immediately in a Context provider. 5. Build the Dashboard using the 'Control Room' grid. 6. Ensure all financial inputs allow for high precision (milyem)."
+}

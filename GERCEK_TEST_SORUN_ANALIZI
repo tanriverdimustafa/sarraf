@@ -1,0 +1,920 @@
+# GERÇEK KULLANIM TESTİ - DETAYLI SORUN ANALİZİ VE ÇÖZÜM PLANI
+## 📅 Tarih: 11 Aralık 2024 - Kullanıcı Test Bulguları
+
+---
+
+## 🔍 TESPİT EDİLEN SORUNLAR (Öncelik Sırasına Göre)
+
+### 🔴 KRİTİK SORUN 1: Combobox'lar Boş Geliyor
+
+#### 1.1 Hurda Altın İşlemi
+- ❌ **Party combobox** boş
+- ❌ **Karat combobox** (hurda kalemleri içinde) boş
+
+#### 1.2 Yeni Alış İşlemi
+- ❌ **Party combobox** boş
+- ❌ **Para birimi combobox** boş
+- ❌ **Karat combobox** (ürün satırları içinde) boş
+
+#### 1.3 Yeni Döviz İşlemi
+- ❌ **Müşteri/Party seçimi** eksik (hangi müşteri işlem yaptı)
+
+#### 1.4 Party Edit
+- ❌ **Party tipi combobox** boş
+
+### 🔴 KRİTİK SORUN 2: Hurda Altın ile Ödeme Logic Eksik
+
+**Durum:** Ödeme yöntemi olarak "Hurda Altın" seçildiğinde:
+- ❌ Kaç gram hurda verildiği sorulmuyor
+- ❌ Hangi ayar olduğu sorulmuyor
+- ❌ Milyem bilgisi sorulmuyor
+- ❌ HAS karşılığı hesaplanmıyor
+
+**Örnekler:**
+- "Sarrafiye'ye 50 gram 22K hurda altın ödedim"
+- "1 reşat altın (7.2 gram, 24K) ile ödeme yaptım"
+
+### 🔴 KRİTİK SORUN 3: Party Balance Güncellenmiyor
+
+**Durum:** 
+- ✅ Yeni party oluşturuluyor
+- ✅ Satış yapılıyor
+- ✅ Tahsilat alınıyor
+- ❌ **AMA** party sayfasında müşteri borçlanmıyor/alacaklanmıyor
+
+**Etki:**
+- Party detail sayfasında:
+  - ❌ İşlemler tabı boş
+  - ❌ Son hareketler boş
+  - ❌ Ödemeler boş
+  - ❌ Balance (bakiye) güncellenmiyor
+
+---
+
+## 🔬 TEKNİK SORUN ANALİZİ
+
+### SORUN 1 Analizi: Combobox'lar Neden Boş?
+
+#### Kod İncelemesi - HurdaForm.jsx
+```javascript
+// Line 44-61: loadLookups fonksiyonu
+const loadLookups = async () => {
+  try {
+    const [partiesData, karatsData, snapshotData] = await Promise.all([
+      getParties(),
+      getKarats(),
+      getLatestPriceSnapshot(),
+    ]);
+    setParties(partiesData || []); // ← API'den veri geliyor mu?
+    setKarats(karatsData || []);   // ← API'den veri geliyor mu?
+    setPriceSnapshot(snapshotData);
+  } catch (error) {
+    console.error('Lookup load error:', error); // ← Console'da hata var mı?
+  }
+};
+
+// Line 189-200: Party combobox render
+<Select value={formData.party_id} onValueChange={(value) => handleChange('party_id', value)}>
+  <SelectTrigger>
+    <SelectValue placeholder="Hurda kabul edilecek party" />
+  </SelectTrigger>
+  <SelectContent>
+    {parties.map((party) => (  // ← parties array'i boş mu?
+      <SelectItem key={party.id} value={party.id}>
+        {party.name} ({party.id})
+      </SelectItem>
+    ))}
+  </SelectContent>
+</Select>
+```
+
+#### Olası Sebepler:
+1. **API endpoint çağrılmıyor** → Network tab'da request görünüyor mu?
+2. **API 401/403 dönüyor** → Token expired mı?
+3. **API boş array dönüyor** → Database'de data var mı?
+4. **State güncellenmiyor** → React DevTools'da state dolu mu?
+5. **Value type mismatch** → `value={party.id}` string mi integer mı?
+
+### SORUN 2 Analizi: Hurda Altın ile Ödeme
+
+#### Mevcut PaymentForm Logic
+```javascript
+// PaymentForm.jsx - Mevcut yapı
+const [formData, setFormData] = useState({
+  type_code: 'PAYMENT',
+  party_id: '',
+  transaction_date: new Date().toISOString().split('T')[0],
+  currency: 'TRY',
+  total_amount_currency: '', // ← TL olarak ödeme tutarı
+  payment_method_code: '',   // ← GOLD_SCRAP seçilirse ne olmalı?
+  notes: '',
+});
+
+// ❌ EKSIK: GOLD_SCRAP seçildiğinde:
+// - weight_gram sorulmalı
+// - karat_id sorulmalı
+// - fineness hesaplanmalı
+// - HAS karşılığı hesaplanmalı
+```
+
+#### Olması Gereken Logic
+```javascript
+// Payment method = GOLD_SCRAP ise:
+if (formData.payment_method_code === 'GOLD_SCRAP') {
+  // Yeni alanlar göster:
+  formData.scrap_lines = [
+    {
+      karat_id: '',
+      weight_gram: '',
+      fineness: '',  // karat'tan otomatik hesaplanır
+      has_amount: '' // weight × fineness
+    }
+  ];
+  
+  // Total HAS = sum(scrap_lines.has_amount)
+  // TL karşılığı = Total HAS × has_buy_price
+}
+```
+
+### SORUN 3 Analizi: Party Balance Güncellenmiyor
+
+#### Backend Transaction Flow Kontrolü
+```python
+# financial_v2_transactions.py içinde
+# Her transaction create'de party balance güncellenmeli
+
+async def create_sale_transaction(data, user_id, db):
+    # ... transaction oluştur ...
+    
+    # ❓ Party balance güncelleniyor mu?
+    # Kontrol edilmesi gereken:
+    
+    # Option 1: Transaction'da total_has_amount var mı?
+    transaction_doc = {
+        "total_has_amount": -150.500000,  # Negative = OUT (müşteriden çıkış)
+        "party_id": "customer_uuid",
+        # ...
+    }
+    
+    # Option 2: Party balance ayrı bir collection'da mı tutulmalı?
+    # Option 3: Aggregate query ile mi hesaplanmalı?
+```
+
+#### Party Detail Page API
+```javascript
+// PartyDetailPage.js - Line 40-47
+const [partyResponse, transactionsResponse] = await Promise.all([
+  axios.get(`${API}/parties/${id}`),        // ← Party bilgisi
+  axios.get(`${API}/parties/${id}/transactions`) // ← İşlemler
+]);
+
+// ❓ Backend'de bu endpoint var mı?
+// GET /api/parties/{id}/transactions
+// ❓ Financial transactions'ları getiriyor mu?
+```
+
+---
+
+## 🛠️ ÇÖZÜM PLANI (EMERGENT AI İÇİN)
+
+### ÇÖZÜM 1: Combobox'ları Düzelt (1-2 saat)
+
+#### Adım 1.1: Debug - Veri Gelmiyor mu Kontrol Et
+
+**Dosya:** `frontend/src/components/transactions/forms/HurdaForm.jsx`
+
+```javascript
+// Line 44'e console log EKLE:
+const loadLookups = async () => {
+  console.log('🔍 HurdaForm: Loading lookups...');
+  
+  try {
+    const [partiesData, karatsData, snapshotData] = await Promise.all([
+      getParties(),
+      getKarats(),
+      getLatestPriceSnapshot(),
+    ]);
+    
+    console.log('📊 Parties data:', partiesData);
+    console.log('📊 Karats data:', karatsData);
+    console.log('📊 Snapshot data:', snapshotData);
+    
+    setParties(partiesData || []);
+    setKarats(karatsData || []);
+    setPriceSnapshot(snapshotData);
+    
+    console.log('✅ State updated');
+  } catch (error) {
+    console.error('❌ Lookup load error:', error);
+  }
+};
+```
+
+**Test Et:**
+1. Hurda formunu aç
+2. F12 → Console'a bak
+3. Log'ları gör:
+   - API çağrısı yapılıyor mu?
+   - Data geliyor mu?
+   - State güncelleniyor mu?
+
+#### Adım 1.2: API Token Kontrolü
+
+**Dosya:** `frontend/src/services/financialV2Service.js`
+
+```javascript
+// Her API çağrısında token var mı kontrol et:
+export const getParties = async () => {
+  console.log('🔐 Token:', localStorage.getItem('token') ? 'EXISTS' : 'MISSING');
+  
+  const response = await api.get('/api/parties');
+  
+  console.log('📡 GET /api/parties:', response.status, response.data);
+  
+  return response.data;
+};
+```
+
+#### Adım 1.3: Value Type Fix
+
+**Sorun:** ID'ler string mi integer mi?
+
+```javascript
+// Combobox'larda value type'ı kontrol et:
+<Select 
+  value={formData.party_id}  // ← String mi? Number mi?
+  onValueChange={(value) => {
+    console.log('Selected value:', value, typeof value);
+    handleChange('party_id', value);
+  }}
+>
+  <SelectContent>
+    {parties.map((party) => (
+      <SelectItem 
+        key={party.id} 
+        value={party.id.toString()} // ← String'e çevir
+      >
+        {party.name}
+      </SelectItem>
+    ))}
+  </SelectContent>
+</Select>
+
+// handleChange'de:
+const handleChange = (field, value) => {
+  console.log(`🔄 ${field} =`, value);
+  setFormData((prev) => ({ ...prev, [field]: value }));
+};
+```
+
+#### Adım 1.4: Aynı Fix'i Tüm Formlarda Uygula
+
+**Dosyalar:**
+- ✅ `PurchaseForm.jsx` (party, currency, karat combobox'ları)
+- ✅ `HurdaForm.jsx` (party, karat combobox'ları)
+- ✅ `ExchangeForm.jsx` (currency, party combobox'ları)
+- ✅ `PaymentForm.jsx` (party combobox'ı)
+- ✅ `PartyFormDialog.js` (party type combobox'ı)
+
+**Tek Bir Pattern:**
+```javascript
+// 1. useEffect'te load
+useEffect(() => {
+  loadLookups();
+}, []);
+
+// 2. Async function ile API çağır
+const loadLookups = async () => {
+  try {
+    const data = await getParties();
+    console.log('Loaded parties:', data); // ← DEBUG
+    setParties(data || []);
+  } catch (error) {
+    console.error('Error:', error);
+    toast.error('Veriler yüklenemedi');
+  }
+};
+
+// 3. Map ile render
+{parties.map((party) => (
+  <SelectItem key={party.id} value={party.id.toString()}>
+    {party.name}
+  </SelectItem>
+))}
+```
+
+---
+
+### ÇÖZÜM 2: Hurda Altın ile Ödeme (2-3 saat)
+
+#### Yaklaşım: PaymentForm'u Genişlet
+
+**Dosya:** `frontend/src/components/transactions/forms/PaymentForm.jsx`
+
+#### Adım 2.1: State'e Hurda Lines Ekle
+
+```javascript
+const [formData, setFormData] = useState({
+  type_code: 'PAYMENT',
+  party_id: '',
+  transaction_date: new Date().toISOString().split('T')[0],
+  currency: 'TRY',
+  total_amount_currency: '',
+  payment_method_code: '',
+  notes: '',
+  
+  // YENİ: Hurda altın için
+  scrap_lines: []  // ← Hurda altın seçilirse doldurulacak
+});
+
+const [karats, setKarats] = useState([]);
+const [showScrapSection, setShowScrapSection] = useState(false);
+```
+
+#### Adım 2.2: Payment Method Değişince Kontrol Et
+
+```javascript
+const handlePaymentMethodChange = (value) => {
+  handleChange('payment_method_code', value);
+  
+  // Hurda altın seçildiyse scrap section'ı göster
+  if (value === 'GOLD_SCRAP') {
+    setShowScrapSection(true);
+    
+    // İlk satırı ekle
+    if (formData.scrap_lines.length === 0) {
+      setFormData(prev => ({
+        ...prev,
+        scrap_lines: [{
+          karat_id: '',
+          weight_gram: '',
+          fineness: '',
+          has_amount: '',
+          note: ''
+        }]
+      }));
+    }
+  } else {
+    setShowScrapSection(false);
+    setFormData(prev => ({
+      ...prev,
+      scrap_lines: []
+    }));
+  }
+};
+```
+
+#### Adım 2.3: Hurda Section UI Ekle
+
+```javascript
+{/* Hurda Altın Detayları (GOLD_SCRAP seçiliyse) */}
+{showScrapSection && (
+  <Card className="border-amber-500/20 bg-amber-50/50">
+    <CardHeader>
+      <CardTitle>Hurda Altın Detayları</CardTitle>
+      <CardDescription>
+        Ödeme için kullanılan hurda altın bilgileri
+      </CardDescription>
+    </CardHeader>
+    <CardContent className="space-y-4">
+      {formData.scrap_lines.map((line, index) => (
+        <div key={index} className="p-4 border rounded-lg space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="font-semibold">Hurda #{index + 1}</span>
+            {formData.scrap_lines.length > 1 && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => removeScrapLine(index)}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            {/* Karat Seçimi */}
+            <div className="space-y-2">
+              <Label>Karat *</Label>
+              <Select
+                value={line.karat_id}
+                onValueChange={(value) => handleScrapLineChange(index, 'karat_id', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Ayar seçiniz" />
+                </SelectTrigger>
+                <SelectContent>
+                  {karats.map((karat) => (
+                    <SelectItem key={karat.id} value={karat.id.toString()}>
+                      {karat.karat}K ({karat.fineness})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Ağırlık */}
+            <div className="space-y-2">
+              <Label>Ağırlık (gram) *</Label>
+              <Input
+                type="number"
+                step="0.01"
+                placeholder="10.50"
+                value={line.weight_gram}
+                onChange={(e) => handleScrapLineChange(index, 'weight_gram', e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* HAS Hesaplama Gösterimi */}
+          <div className="bg-green-50 p-3 rounded-lg">
+            <p className="text-sm text-green-800">
+              <strong>HAS Karşılığı:</strong> {calculateScrapHAS(line).toFixed(6)} HAS
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {line.weight_gram} gr × {line.fineness || 0} fineness
+            </p>
+          </div>
+        </div>
+      ))}
+
+      {/* Toplam HAS */}
+      <div className="bg-amber-100 p-4 rounded-lg">
+        <p className="text-lg font-bold text-amber-900">
+          Toplam HAS: {calculateTotalScrapHAS().toFixed(6)} HAS
+        </p>
+        <p className="text-sm text-amber-700">
+          TL Karşılığı: ₺{calculateTotalScrapTL().toFixed(2)}
+        </p>
+      </div>
+
+      <Button
+        type="button"
+        variant="outline"
+        onClick={addScrapLine}
+      >
+        <Plus className="w-4 h-4 mr-2" />
+        Hurda Kalemi Ekle
+      </Button>
+    </CardContent>
+  </Card>
+)}
+```
+
+#### Adım 2.4: Helper Functions
+
+```javascript
+const handleScrapLineChange = (index, field, value) => {
+  setFormData(prev => {
+    const newLines = [...prev.scrap_lines];
+    newLines[index] = { ...newLines[index], [field]: value };
+    
+    // Karat seçilince fineness'ı otomatik doldur
+    if (field === 'karat_id') {
+      const karat = karats.find(k => k.id.toString() === value);
+      if (karat) {
+        newLines[index].fineness = karat.fineness;
+      }
+    }
+    
+    return { ...prev, scrap_lines: newLines };
+  });
+};
+
+const calculateScrapHAS = (line) => {
+  if (!line.weight_gram || !line.fineness) return 0;
+  return parseFloat(line.weight_gram) * parseFloat(line.fineness);
+};
+
+const calculateTotalScrapHAS = () => {
+  return formData.scrap_lines.reduce((sum, line) => sum + calculateScrapHAS(line), 0);
+};
+
+const calculateTotalScrapTL = () => {
+  if (!priceSnapshot?.has_buy_tl) return 0;
+  return calculateTotalScrapHAS() * priceSnapshot.has_buy_tl;
+};
+
+const addScrapLine = () => {
+  setFormData(prev => ({
+    ...prev,
+    scrap_lines: [
+      ...prev.scrap_lines,
+      {
+        karat_id: '',
+        weight_gram: '',
+        fineness: '',
+        has_amount: '',
+        note: ''
+      }
+    ]
+  }));
+};
+
+const removeScrapLine = (index) => {
+  if (formData.scrap_lines.length === 1) {
+    toast.error('En az bir hurda kalemi gereklidir');
+    return;
+  }
+  setFormData(prev => ({
+    ...prev,
+    scrap_lines: prev.scrap_lines.filter((_, i) => i !== index)
+  }));
+};
+```
+
+#### Adım 2.5: Backend Payload
+
+```javascript
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  
+  // ... validation ...
+  
+  // Hurda altın ile ödeme ise özel payload
+  let payload;
+  
+  if (formData.payment_method_code === 'GOLD_SCRAP') {
+    payload = {
+      type_code: 'PAYMENT',
+      party_id: formData.party_id,
+      transaction_date: formData.transaction_date,
+      payment_method_code: 'GOLD_SCRAP',
+      notes: formData.notes,
+      
+      // Hurda altın lines
+      lines: formData.scrap_lines.map(line => ({
+        line_kind: 'PAYMENT',
+        karat_id: parseInt(line.karat_id),
+        weight_gram: parseFloat(line.weight_gram),
+        fineness: parseFloat(line.fineness),
+        material_has: calculateScrapHAS(line),
+        note: line.note || ''
+      })),
+      
+      // Total hesaplama
+      total_has_amount: -calculateTotalScrapHAS(), // Negative (OUT)
+      total_amount_currency: calculateTotalScrapTL(),
+      currency: 'TRY'
+    };
+  } else {
+    // Normal para ile ödeme
+    payload = {
+      ...formData,
+      total_amount_currency: parseFloat(formData.total_amount_currency)
+    };
+  }
+  
+  console.log('💰 Payment payload:', payload);
+  
+  const result = await createFinancialTransaction(payload);
+  // ...
+};
+```
+
+---
+
+### ÇÖZÜM 3: Party Balance ve İşlemler (2-3 saat)
+
+#### Sorun Analizi
+1. ✅ Transaction oluşturuluyor
+2. ❌ Party'nin transaction'ları görünmüyor
+3. ❌ Party balance güncellenmiyor
+
+#### Backend Kontrol: Party Transactions Endpoint Var mı?
+
+**Dosya:** `backend/server.py`
+
+```python
+# Kontrol edilecek:
+# GET /api/parties/{party_id}/transactions endpoint'i var mı?
+
+@api_router.get("/parties/{party_id}/transactions")
+async def get_party_transactions(
+    party_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get all financial transactions for a party"""
+    # Financial transactions collection'dan çek
+    transactions = await db.financial_transactions.find(
+        {"party_id": party_id}
+    ).sort("transaction_date", -1).to_list(100)
+    
+    return transactions
+
+# Party balance endpoint'i var mı?
+@api_router.get("/parties/{party_id}/balance")
+async def get_party_balance(
+    party_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Calculate party balance from all transactions"""
+    # Aggregate query ile hesapla
+    pipeline = [
+        {"$match": {"party_id": party_id, "status": "COMPLETED"}},
+        {"$group": {
+            "_id": None,
+            "total_has": {"$sum": "$total_has_amount"}
+        }}
+    ]
+    
+    result = await db.financial_transactions.aggregate(pipeline).to_list(1)
+    
+    if result:
+        return {"balance_has": result[0]["total_has"]}
+    return {"balance_has": 0.0}
+```
+
+#### Adım 3.1: Backend Endpoint Ekle (Yoksa)
+
+**Dosya:** `backend/server.py`
+
+```python
+# Line ~1000 civarına EKLE:
+
+@api_router.get("/parties/{party_id}/transactions")
+async def get_party_transactions(
+    party_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Get all financial transactions for a specific party
+    """
+    verify_token(credentials.credentials)
+    
+    transactions = await db.financial_transactions.find(
+        {"party_id": party_id}
+    ).sort("transaction_date", -1).to_list(1000)
+    
+    # Convert ObjectId to string for JSON serialization
+    for tx in transactions:
+        tx["_id"] = str(tx["_id"])
+        if "price_snapshot_id" in tx:
+            tx["price_snapshot_id"] = str(tx["price_snapshot_id"])
+        if "lines" in tx:
+            for line in tx["lines"]:
+                line["_id"] = str(line["_id"])
+    
+    return transactions
+
+@api_router.get("/parties/{party_id}/balance")
+async def get_party_balance(
+    party_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Calculate party balance from all completed transactions
+    """
+    verify_token(credentials.credentials)
+    
+    pipeline = [
+        {
+            "$match": {
+                "party_id": party_id,
+                "status": "COMPLETED"
+            }
+        },
+        {
+            "$group": {
+                "_id": None,
+                "total_has": {"$sum": "$total_has_amount"},
+                "total_count": {"$sum": 1}
+            }
+        }
+    ]
+    
+    result = await db.financial_transactions.aggregate(pipeline).to_list(1)
+    
+    if result:
+        return {
+            "party_id": party_id,
+            "balance_has": round(result[0]["total_has"], 6),
+            "transaction_count": result[0]["total_count"]
+        }
+    
+    return {
+        "party_id": party_id,
+        "balance_has": 0.0,
+        "transaction_count": 0
+    }
+```
+
+#### Adım 3.2: Frontend PartyDetailPage'i Güncelle
+
+**Dosya:** `frontend/src/pages/PartyDetailPage.js`
+
+```javascript
+// Line 37-56 civarını GÜNCELLE:
+
+const fetchPartyDetails = async () => {
+  try {
+    setLoading(true);
+    
+    // Parallel API calls
+    const [partyResponse, transactionsResponse, balanceResponse] = await Promise.all([
+      axios.get(`${API}/parties/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      }),
+      axios.get(`${API}/parties/${id}/transactions`, {  // ← YENİ ENDPOINT
+        headers: { Authorization: `Bearer ${token}` }
+      }),
+      axios.get(`${API}/parties/${id}/balance`, {       // ← YENİ ENDPOINT
+        headers: { Authorization: `Bearer ${token}` }
+      })
+    ]);
+    
+    console.log('📊 Party:', partyResponse.data);
+    console.log('📊 Transactions:', transactionsResponse.data);
+    console.log('📊 Balance:', balanceResponse.data);
+    
+    setParty({
+      ...partyResponse.data,
+      balance: balanceResponse.data.balance_has,
+      transaction_count: balanceResponse.data.transaction_count
+    });
+    
+    setTransactions(transactionsResponse.data || []);
+    
+  } catch (error) {
+    console.error('❌ Error fetching party:', error);
+    toast.error('Party yüklenemedi');
+  } finally {
+    setLoading(false);
+  }
+};
+```
+
+#### Adım 3.3: UI'da Balance ve Transactions Göster
+
+```javascript
+{/* Balance Card */}
+<Card>
+  <CardHeader>
+    <CardTitle>Bakiye</CardTitle>
+  </CardHeader>
+  <CardContent>
+    <div className="flex items-center justify-between">
+      <div>
+        <p className="text-sm text-muted-foreground">HAS Bakiye</p>
+        <p className="text-3xl font-bold">
+          {formatBalance(party?.balance || 0)}
+        </p>
+      </div>
+      <Coins className={`w-12 h-12 ${
+        party?.balance > 0 ? 'text-green-500' : 
+        party?.balance < 0 ? 'text-red-500' : 
+        'text-gray-400'
+      }`} />
+    </div>
+    
+    <div className="mt-2 text-xs text-muted-foreground">
+      {party?.balance > 0 && '⬆️ Alacaklı'}
+      {party?.balance < 0 && '⬇️ Borçlu'}
+      {party?.balance === 0 && '➡️ Dengede'}
+    </div>
+  </CardContent>
+</Card>
+
+{/* Transactions Tab */}
+<TabsContent value="transactions">
+  {transactions.length === 0 ? (
+    <div className="text-center py-8 text-muted-foreground">
+      Henüz işlem yok
+    </div>
+  ) : (
+    <div className="space-y-2">
+      {transactions.map((tx) => (
+        <Card key={tx.code} className="cursor-pointer hover:bg-muted/50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-semibold">{tx.code}</p>
+                <p className="text-sm text-muted-foreground">
+                  {tx.type_code} - {new Date(tx.transaction_date).toLocaleDateString('tr-TR')}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className={`font-bold ${
+                  tx.total_has_amount > 0 ? 'text-green-600' : 'text-red-600'
+                }`}>
+                  {tx.total_has_amount > 0 ? '+' : ''}
+                  {formatBalance(tx.total_has_amount)} HAS
+                </p>
+                {tx.total_amount_currency && (
+                  <p className="text-sm text-muted-foreground">
+                    {tx.currency} {tx.total_amount_currency.toFixed(2)}
+                  </p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  )}
+</TabsContent>
+```
+
+---
+
+## 📝 TEST PLANI
+
+### Test 1: Combobox'lar Çalışıyor mu?
+
+```
+1. Hurda altın formunu aç
+   ✅ Party combobox'ta partiler görünmeli
+   ✅ Karat combobox'ta karatlar görünmeli
+
+2. Alış formunu aç
+   ✅ Party combobox'ta partiler görünmeli
+   ✅ Para birimi combobox'ta TRY, USD, EUR görünmeli
+   ✅ Karat combobox'ta karatlar görünmeli
+
+3. Party edit
+   ✅ Party tipi combobox'ta 7 tip görünmeli
+```
+
+### Test 2: Hurda Altın ile Ödeme
+
+```
+1. Yeni ödeme → Ödeme yöntemi: Hurda Altın
+   ✅ Hurda altın detayları bölümü açılmalı
+   
+2. Hurda bilgilerini gir:
+   - Karat: 22K
+   - Ağırlık: 10 gram
+   ✅ HAS karşılığı hesaplanmalı (10 × 0.916 = 9.16 HAS)
+   ✅ TL karşılığı gösterilmeli
+   
+3. Kaydet
+   ✅ Transaction oluşmalı
+   ✅ Backend'de lines içinde hurda detayları olmalı
+```
+
+### Test 3: Party Balance
+
+```
+1. Yeni party oluştur
+   ✅ Party oluşmalı
+
+2. Bu party'ye satış yap (örn: 100 HAS)
+   ✅ Transaction oluşmalı
+   
+3. Party detay sayfasına git
+   ✅ Balance: +100 HAS görünmeli
+   ✅ İşlemler tabında satış görünmeli
+   
+4. Bu party'den tahsilat al (örn: 50 HAS)
+   ✅ Balance: +50 HAS olmalı (100 - 50)
+   ✅ İşlemler tabında tahsilat görünmeli
+```
+
+---
+
+## 🎯 ÖNCELİK SIRASI (EMERGENT AI İÇİN)
+
+### Hafta 1 - Kritik Sorunlar
+
+#### Gün 1: Combobox'ları Düzelt (En Kritik)
+- ⏱️ Süre: 3-4 saat
+- 🎯 Hedef: Tüm combobox'lar çalışsın
+- ✅ Başarı: Formlar kullanılabilir olsun
+
+#### Gün 2: Party Balance ve İşlemler
+- ⏱️ Süre: 3-4 saat
+- 🎯 Hedef: Party detayında balance ve işlemler görsün
+- ✅ Başarı: Müşteri borç/alacağı takip edilsin
+
+#### Gün 3: Hurda Altın ile Ödeme
+- ⏱️ Süre: 4-5 saat
+- 🎯 Hedef: Hurda altın ile ödeme yapılabilsin
+- ✅ Başarı: Sarrafiye'ye hurda ile ödeme senaryosu çalışsın
+
+---
+
+## 💡 EMERGENT AI İÇİN SON NOTLAR
+
+### Yaklaşım Stratejisi
+1. **İlk olarak:** Combobox sorununu çöz (en basit ve en kritik)
+2. **Console log kullan:** Her adımda debug yap
+3. **Tek seferde bir form:** HurdaForm → PurchaseForm → PaymentForm
+4. **Test et:** Her değişiklikten sonra test et
+
+### Dikkat Edilecekler
+1. ❌ **DOKUNMA:** Backend transaction create logic'e (çalışıyor)
+2. ❌ **DOKUNMA:** HAS calculation helper'larına (doğru)
+3. ✅ **DEĞER:** Sadece broken combobox'ları ve eksik UI'ları düzelt
+
+### Debug Checklist
+- [ ] Console'da API request görünüyor mu?
+- [ ] API response 200 OK mi?
+- [ ] Response data boş değil mi?
+- [ ] State'e veri geliyor mu? (React DevTools)
+- [ ] Combobox items render ediliyor mu?
+- [ ] Value type string/integer uyuşuyor mu?
+
+---
+
+**SONUÇ:** Tüm sorunlar çözülebilir! En kritik olanı combobox sorunu. Onu çözünce geri kalanı takip eder.
