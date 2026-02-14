@@ -201,7 +201,7 @@ async def connect_to_market_websocket():
                                 
                                 if should_insert:
                                     await _db.price_snapshots.insert_one(snapshot_doc)
-                                    logger.info(f"ğŸ’° Price snapshot saved: HAS Buy={snapshot_doc['has_buy_tl']}, Sell={snapshot_doc['has_sell_tl']}")
+                                    logger.info(f"Ã„Å¸Ã…Â¸Ã¢â‚¬â„¢Ã‚Â° Price snapshot saved: HAS Buy={snapshot_doc['has_buy_tl']}, Sell={snapshot_doc['has_sell_tl']}")
                         
                         logger.info(f"Updated market data: {new_data}")
         
@@ -212,9 +212,14 @@ async def connect_to_market_websocket():
         try:
             logger.info("Attempting to connect to market WebSocket...")
             await sio.connect(
-                'https://hrmsocketonly.haremaltin.com',
+                'https://socket.haremaltin.com',
                 transports=['websocket'],
-                wait_timeout=10
+                wait_timeout=10,
+                headers={
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                    'Origin': 'https://www.haremaltin.com',
+                    'Referer': 'https://www.haremaltin.com/'
+                }
             )
             await sio.wait()
         except Exception as e:

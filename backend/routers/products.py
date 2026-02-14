@@ -34,15 +34,15 @@ def calculate_product_costs(product_data: dict, product_type: dict, karat: dict 
     labor_has_cost = 0.0
     
     if is_gold_based:
-        # Altın ürün maliyet hesabı
+        # AltÃ„Â±n ÃƒÂ¼rÃƒÂ¼n maliyet hesabÃ„Â±
         weight = product_data.get("weight_gram", 0)
         fineness = karat.get("fineness", 0) if karat else 0
         material_has_cost = weight * fineness
     else:
-        # Altın olmayan ürün
+        # AltÃ„Â±n olmayan ÃƒÂ¼rÃƒÂ¼n
         material_has_cost = product_data.get("alis_has_degeri", 0)
     
-    # İşçilik hesabı
+    # Ã„Â°Ã…Å¸ÃƒÂ§ilik hesabÃ„Â±
     labor_type_id = product_data.get("labor_type_id")
     labor_has_value = product_data.get("labor_has_value", 0)
     
@@ -57,7 +57,7 @@ def calculate_product_costs(product_data: dict, product_type: dict, karat: dict 
     
     total_cost_has = material_has_cost + labor_has_cost
     
-    # Satış değeri hesabı
+    # SatÃ„Â±Ã…Å¸ deÃ„Å¸eri hesabÃ„Â±
     profit_rate = product_data.get("profit_rate_percent", 0)
     sale_has_value = total_cost_has * (1 + profit_rate / 100)
     
@@ -86,7 +86,7 @@ async def create_product(product_data: ProductCreate, current_user: User = Depen
         # Validate based on product type
         if is_gold_based:
             if not product_data.karat_id or not product_data.weight_gram:
-                raise HTTPException(status_code=400, detail="Altın ürünler için ayar ve gram ağırlık zorunludur")
+                raise HTTPException(status_code=400, detail="AltÃ„Â±n ÃƒÂ¼rÃƒÂ¼nler iÃƒÂ§in ayar ve gram aÃ„Å¸Ã„Â±rlÃ„Â±k zorunludur")
             
             # Get karat info
             karat = await db.karats.find_one({"id": product_data.karat_id})
@@ -95,7 +95,7 @@ async def create_product(product_data: ProductCreate, current_user: User = Depen
             fineness = karat["fineness"]
         else:
             if not product_data.alis_has_degeri:
-                raise HTTPException(status_code=400, detail="Altın olmayan ürünler için alış HAS değeri zorunludur")
+                raise HTTPException(status_code=400, detail="AltÃ„Â±n olmayan ÃƒÂ¼rÃƒÂ¼nler iÃƒÂ§in alÃ„Â±Ã…Å¸ HAS deÃ„Å¸eri zorunludur")
             fineness = None
             karat = None
         
@@ -109,11 +109,11 @@ async def create_product(product_data: ProductCreate, current_user: User = Depen
             if labor_type["code"] == "PER_GRAM" and not is_gold_based:
                 raise HTTPException(
                     status_code=400,
-                    detail="Altın olmayan ürünlerde gram başı işçilik kullanılamaz"
+                    detail="AltÃ„Â±n olmayan ÃƒÂ¼rÃƒÂ¼nlerde gram baÃ…Å¸Ã„Â± iÃ…Å¸ÃƒÂ§ilik kullanÃ„Â±lamaz"
                 )
             
             if not product_data.labor_has_value:
-                raise HTTPException(status_code=400, detail="İşçilik değeri zorunludur")
+                raise HTTPException(status_code=400, detail="Ã„Â°Ã…Å¸ÃƒÂ§ilik deÃ„Å¸eri zorunludur")
         
         # Calculate costs
         costs = calculate_product_costs(product_data.model_dump(), product_type, karat)
@@ -125,7 +125,7 @@ async def create_product(product_data: ProductCreate, current_user: User = Depen
         if product_data.supplier_party_id:
             supplier = await db.parties.find_one({"id": product_data.supplier_party_id, "is_active": True})
             if not supplier:
-                raise HTTPException(status_code=400, detail="Tedarikçi bulunamadı veya aktif değil")
+                raise HTTPException(status_code=400, detail="TedarikÃƒÂ§i bulunamadÃ„Â± veya aktif deÃ„Å¸il")
         
         # Create product
         now = datetime.now(timezone.utc).isoformat()
@@ -146,7 +146,7 @@ async def create_product(product_data: ProductCreate, current_user: User = Depen
             "total_cost_has": costs["total_cost_has"],
             "profit_rate_percent": product_data.profit_rate_percent,
             "sale_has_value": costs["sale_has_value"],
-            # Tedarikçi bilgisi
+            # TedarikÃƒÂ§i bilgisi
             "supplier_party_id": product_data.supplier_party_id,
             "purchase_date": product_data.purchase_date,
             "purchase_price_has": costs["total_cost_has"],
@@ -159,20 +159,20 @@ async def create_product(product_data: ProductCreate, current_user: User = Depen
             # Track type ve unit - product_type'dan al
             "track_type": product_type.get("track_type", "UNIQUE"),
             "unit": product_type.get("unit", "GRAM"),
-            # Quantity - FIFO ürünler için
+            # Quantity - FIFO ÃƒÂ¼rÃƒÂ¼nler iÃƒÂ§in
             "quantity": product_data.quantity if hasattr(product_data, 'quantity') and product_data.quantity else 1,
             "remaining_quantity": product_data.quantity if hasattr(product_data, 'quantity') and product_data.quantity else 1,
-            # Unit HAS - FIFO için birim değer
+            # Unit HAS - FIFO iÃƒÂ§in birim deÃ„Å¸er
             "unit_has": costs["sale_has_value"] / (product_data.quantity if hasattr(product_data, 'quantity') and product_data.quantity else 1)
         }
         
         await db.products.insert_one(product_dict)
         product_dict.pop("_id", None)
         
-        # ==================== TEDARİKÇİ BORÇ İŞLEMİ ====================
-        # Tedarikçi seçildiyse, tedarikçinin bakiyesini güncelle (BORÇ oluştur)
+        # ==================== TEDARÃ„Â°KÃƒâ€¡Ã„Â° BORÃƒâ€¡ Ã„Â°Ã…ÂLEMÃ„Â° ====================
+        # TedarikÃƒÂ§i seÃƒÂ§ildiyse, tedarikÃƒÂ§inin bakiyesini gÃƒÂ¼ncelle (BORÃƒâ€¡ oluÃ…Å¸tur)
         if product_data.supplier_party_id and costs["total_cost_has"] > 0:
-            # Tedarikçi bakiyesini artır (biz borçlandık)
+            # TedarikÃƒÂ§i bakiyesini artÃ„Â±r (biz borÃƒÂ§landÃ„Â±k)
             await db.parties.update_one(
                 {"id": product_data.supplier_party_id},
                 {"$inc": {"has_balance": costs["total_cost_has"]}}
@@ -186,10 +186,10 @@ async def create_product(product_data: ProductCreate, current_user: User = Depen
                 "entry_type": "PRODUCT_ENTRY",
                 "party_id": product_data.supplier_party_id,
                 "product_id": product_dict["id"],
-                "description": f"Ürün girişi: {product_data.name}",
+                "description": f"ÃƒÅ“rÃƒÂ¼n giriÃ…Å¸i: {product_data.name}",
                 "has_in": 0,
                 "has_out": costs["total_cost_has"],
-                "has_net": costs["total_cost_has"],  # Tedarikçiye borç
+                "has_net": costs["total_cost_has"],  # TedarikÃƒÂ§iye borÃƒÂ§
                 "amount_in": 0,
                 "amount_out": 0,
                 "amount_net": 0,
@@ -199,15 +199,15 @@ async def create_product(product_data: ProductCreate, current_user: User = Depen
             }
             await db.unified_ledger.insert_one(ledger_entry)
             
-            logger.info(f"✅ Supplier {product_data.supplier_party_id} balance updated: +{costs['total_cost_has']} HAS (product entry)")
+            logger.info(f"Ã¢Å“â€¦ Supplier {product_data.supplier_party_id} balance updated: +{costs['total_cost_has']} HAS (product entry)")
         
-        logger.info(f"✅ Product created: {product_dict['id']}")
+        logger.info(f"Ã¢Å“â€¦ Product created: {product_dict['id']}")
         return Product(**product_dict)
     
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ Error creating product: {e}")
+        logger.error(f"Ã¢ÂÅ’ Error creating product: {e}")
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
@@ -236,11 +236,11 @@ async def get_products(
             {"barcode": {"$regex": search, "$options": "i"}}
         ]
     
-    # Toplam kayıt sayısı
+    # Toplam kayÃ„Â±t sayÃ„Â±sÃ„Â±
     total = await db.products.count_documents(query)
     total_pages = (total + per_page - 1) // per_page if per_page > 0 else 1
     
-    # Sayfalama ve sıralama - EN SON GİRİLEN EN ÜSTTE
+    # Sayfalama ve sÃ„Â±ralama - EN SON GÃ„Â°RÃ„Â°LEN EN ÃƒÅ“STTE
     skip = (page - 1) * per_page
     products = await db.products.find(query, {"_id": 0}).sort([
         ("created_at", -1),
@@ -297,14 +297,14 @@ async def update_product(
                 update_data[field] = value
         
         if not update_data:
-            raise HTTPException(status_code=400, detail="Satılan ürünlerde sadece notlar ve fotoğraflar güncellenebilir")
+            raise HTTPException(status_code=400, detail="SatÃ„Â±lan ÃƒÂ¼rÃƒÂ¼nlerde sadece notlar ve fotoÃ„Å¸raflar gÃƒÂ¼ncellenebilir")
     else:
         # Stock status transition validation
         new_stock_status = product_data.stock_status_id
         if new_stock_status:
             # Cannot go back from SOLD
             if current_stock_status == 2 and new_stock_status != 2:
-                raise HTTPException(status_code=400, detail="Satılan ürün stok durumu değiştirilemez")
+                raise HTTPException(status_code=400, detail="SatÃ„Â±lan ÃƒÂ¼rÃƒÂ¼n stok durumu deÃ„Å¸iÃ…Å¸tirilemez")
         
         # Build update data
         update_data = {}
@@ -342,7 +342,7 @@ async def update_product(
             if product_data.labor_type_id == 1 and not is_gold_based:
                 raise HTTPException(
                     status_code=400,
-                    detail="Altın olmayan ürünlerde gram başı işçilik kullanılamaz"
+                    detail="AltÃ„Â±n olmayan ÃƒÂ¼rÃƒÂ¼nlerde gram baÃ…Å¸Ã„Â± iÃ…Å¸ÃƒÂ§ilik kullanÃ„Â±lamaz"
                 )
             update_data["labor_type_id"] = product_data.labor_type_id
             cost_changed = True
@@ -371,7 +371,7 @@ async def update_product(
     
     update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
     
-    # ESKİ MALİYET - Borç güncelleme için
+    # ESKÃ„Â° MALÃ„Â°YET - BorÃƒÂ§ gÃƒÂ¼ncelleme iÃƒÂ§in
     old_total_cost_has = product.get("total_cost_has", 0) or 0
     supplier_party_id = product.get("supplier_party_id")
     
@@ -382,7 +382,7 @@ async def update_product(
     
     updated_product = await db.products.find_one({"id": product_id}, {"_id": 0})
     
-    # BORÇ FARKI GÜNCELLEME
+    # BORÃƒâ€¡ FARKI GÃƒÅ“NCELLEME
     new_total_cost_has = updated_product.get("total_cost_has", 0) or 0
     if supplier_party_id and old_total_cost_has != new_total_cost_has:
         cost_difference = new_total_cost_has - old_total_cost_has
@@ -395,14 +395,14 @@ async def update_product(
         )
         logger.info(f"Updated supplier {supplier_party_id} balance by {cost_difference} HAS (product edit)")
     
-    # ADJUSTMENT KAYDI OLUŞTUR
+    # ADJUSTMENT KAYDI OLUÃ…ÂTUR
     try:
         cost_diff = new_total_cost_has - old_total_cost_has
         if abs(cost_diff) > 0.000001:
             await create_adjustment_entry(
                 original_reference_type="products",
                 original_reference_id=product_id,
-                adjustment_reason=f"Ürün maliyet düzeltme: {old_total_cost_has:.6f} → {new_total_cost_has:.6f} HAS",
+                adjustment_reason=f"ÃƒÅ“rÃƒÂ¼n maliyet dÃƒÂ¼zeltme: {old_total_cost_has:.6f} Ã¢â€ â€™ {new_total_cost_has:.6f} HAS",
                 has_in_diff=cost_diff if cost_diff > 0 else 0,
                 has_out_diff=abs(cost_diff) if cost_diff < 0 else 0,
                 created_by=current_user.id if current_user else None
@@ -420,11 +420,11 @@ async def delete_product(product_id: str, current_user: User = Depends(get_curre
     product = await db.products.find_one({"id": product_id})
     
     if not product:
-        raise HTTPException(status_code=404, detail="Ürün bulunamadı")
+        raise HTTPException(status_code=404, detail="ÃƒÅ“rÃƒÂ¼n bulunamadÃ„Â±")
     
     # Check if SOLD
     if product.get("stock_status_id") == 2:
-        raise HTTPException(status_code=400, detail="Satılmış ürün silinemez")
+        raise HTTPException(status_code=400, detail="SatÃ„Â±lmÃ„Â±Ã…Å¸ ÃƒÂ¼rÃƒÂ¼n silinemez")
     
     # Check for related transactions
     tx_count = await db.financial_transactions.count_documents({
@@ -433,9 +433,9 @@ async def delete_product(product_id: str, current_user: User = Depends(get_curre
     })
     
     if tx_count > 0:
-        raise HTTPException(status_code=400, detail=f"Bu ürünle ilişkili {tx_count} işlem var. Silinemez.")
+        raise HTTPException(status_code=400, detail=f"Bu ÃƒÂ¼rÃƒÂ¼nle iliÃ…Å¸kili {tx_count} iÃ…Å¸lem var. Silinemez.")
     
-    # Tedarikçi borç düzeltmesi
+    # TedarikÃƒÂ§i borÃƒÂ§ dÃƒÂ¼zeltmesi
     supplier_party_id = product.get("supplier_party_id")
     total_cost_has = product.get("total_cost_has", 0) or 0
     
@@ -452,7 +452,7 @@ async def delete_product(product_id: str, current_user: User = Depends(get_curre
     # Delete product
     await db.products.delete_one({"id": product_id})
     
-    return {"message": "Ürün başarıyla silindi"}
+    return {"message": "ÃƒÅ“rÃƒÂ¼n baÃ…Å¸arÃ„Â±yla silindi"}
 
 
 @router.post("/{product_id}/images")
@@ -466,14 +466,14 @@ async def upload_product_image(
     
     product = await db.products.find_one({"id": product_id})
     if not product:
-        raise HTTPException(status_code=404, detail="Ürün bulunamadı")
+        raise HTTPException(status_code=404, detail="ÃƒÅ“rÃƒÂ¼n bulunamadÃ„Â±")
     
     try:
         # Decode base64
         image_bytes = base64.b64decode(image_data.image.split(",")[-1])
         
         # Create uploads directory if not exists
-        uploads_dir = "/app/backend/uploads/products"
+        uploads_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads", "products")
         os.makedirs(uploads_dir, exist_ok=True)
         
         # Generate filename
@@ -500,7 +500,7 @@ async def upload_product_image(
     
     except Exception as e:
         logger.error(f"Failed to upload image: {e}")
-        raise HTTPException(status_code=500, detail=f"Resim yüklenemedi: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Resim yÃƒÂ¼klenemedi: {str(e)}")
 
 
 @router.delete("/{product_id}/images/{image_index}")
@@ -514,12 +514,12 @@ async def delete_product_image(
     
     product = await db.products.find_one({"id": product_id})
     if not product:
-        raise HTTPException(status_code=404, detail="Ürün bulunamadı")
+        raise HTTPException(status_code=404, detail="ÃƒÅ“rÃƒÂ¼n bulunamadÃ„Â±")
     
     images = product.get("images", [])
     
     if image_index < 0 or image_index >= len(images):
-        raise HTTPException(status_code=400, detail="Geçersiz resim indeksi")
+        raise HTTPException(status_code=400, detail="GeÃƒÂ§ersiz resim indeksi")
     
     # Remove from list
     removed_image = images.pop(image_index)
@@ -585,7 +585,7 @@ async def get_stock_summary(
         summary["total_cost_has"] += product.get("total_cost_has", 0) or 0
         summary["total_sale_has"] += product.get("sale_has_value", 0) or 0
         
-        # Karat bazında
+        # Karat bazÃ„Â±nda
         karat_id = product.get("karat_id")
         if karat_id:
             karat = karat_map.get(karat_id, {})
